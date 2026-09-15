@@ -1,5 +1,7 @@
 # Maxy's collection of skills
 
+This is a collection of skills I've created to help me out in Claude when designing or collaborating when building product.
+
 ## Install
 
 ```
