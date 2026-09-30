@@ -1,0 +1,441 @@
+<title>Install /annotate</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --surface-border: #e7e5e4;
+    --text: #1c1917;
+    --text-secondary: #78716c;
+    --accent: #7c3aed;
+    --accent-soft: #ede9fe;
+    --accent-text: #5b21b6;
+    --logic: #3b82f6;
+    --logic-soft: #dbeafe;
+    --reference: #ec4899;
+    --reference-soft: #fce7f3;
+    --code-bg: #292524;
+    --code-text: #e7e5e4;
+    --code-comment: #a8a29e;
+    --code-string: #a78bfa;
+    --step-line: #d6d3d1;
+    --callout-bg: #fef3c7;
+    --callout-border: #f59e0b;
+    --callout-text: #92400e;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1917;
+      --surface: #292524;
+      --surface-border: #44403c;
+      --text: #fafaf9;
+      --text-secondary: #a8a29e;
+      --accent: #a78bfa;
+      --accent-soft: #2e1065;
+      --accent-text: #c4b5fd;
+      --logic: #60a5fa;
+      --logic-soft: #1e3a5f;
+      --reference: #f472b6;
+      --reference-soft: #4a1942;
+      --code-bg: #0c0a09;
+      --code-text: #e7e5e4;
+      --code-comment: #78716c;
+      --code-string: #c4b5fd;
+      --step-line: #44403c;
+      --callout-bg: #451a03;
+      --callout-border: #d97706;
+      --callout-text: #fde68a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c1917;
+    --surface: #292524;
+    --surface-border: #44403c;
+    --text: #fafaf9;
+    --text-secondary: #a8a29e;
+    --accent: #a78bfa;
+    --accent-soft: #2e1065;
+    --accent-text: #c4b5fd;
+    --logic: #60a5fa;
+    --logic-soft: #1e3a5f;
+    --reference: #f472b6;
+    --reference-soft: #4a1942;
+    --code-bg: #0c0a09;
+    --code-text: #e7e5e4;
+    --code-comment: #78716c;
+    --code-string: #c4b5fd;
+    --step-line: #44403c;
+    --callout-bg: #451a03;
+    --callout-border: #d97706;
+    --callout-text: #fde68a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    max-width: 640px;
+    margin: 0 auto;
+    padding-inline: 24px;
+    padding-block: 48px 80px;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin: 0 0 40px;
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 40px 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  p, li {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  /* Category pills */
+  .categories {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 0 32px;
+  }
+  .cat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  .cat-pill.note { background: var(--accent-soft); color: var(--accent-text); }
+  .cat-pill.logic { background: var(--logic-soft); color: var(--logic); }
+  .cat-pill.reference { background: var(--reference-soft); color: var(--reference); }
+  .cat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .cat-pill.note .cat-dot { background: var(--accent); }
+  .cat-pill.logic .cat-dot { background: var(--logic); }
+  .cat-pill.reference .cat-dot { background: var(--reference); }
+
+  /* Steps */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px 0 32px;
+    padding: 0;
+    list-style: none;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 12px;
+    padding-bottom: 24px;
+    position: relative;
+  }
+  .step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 32px;
+    bottom: 0;
+    width: 2px;
+    background: var(--step-line);
+  }
+  .step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .step-content {
+    padding-top: 4px;
+  }
+  .step-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    margin: 0 0 6px;
+  }
+  .step-desc {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Code blocks */
+  .code-block {
+    background: var(--code-bg);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 12px 0;
+    overflow-x: auto;
+    position: relative;
+  }
+  .code-block code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    color: var(--code-text);
+    white-space: pre;
+  }
+  .code-block .comment { color: var(--code-comment); }
+  .code-block .string { color: var(--code-string); }
+  .code-block .dim { color: var(--code-comment); }
+
+  .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--code-comment);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.6875rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { color: var(--code-text); border-color: rgba(255,255,255,0.3); }
+
+  /* File tree */
+  .file-tree {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .file-tree .folder { color: var(--accent-text); font-weight: 500; }
+  .file-tree .file { color: var(--text-secondary); }
+  .file-tree .required { color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; margin-left: 6px; }
+
+  /* Callout */
+  .callout {
+    background: var(--callout-bg);
+    border-left: 3px solid var(--callout-border);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin: 20px 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--callout-text);
+  }
+  .callout strong { font-weight: 600; }
+
+  /* Inline code */
+  code:not(.code-block code) {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8em;
+  }
+
+  /* Divider */
+  hr {
+    border: none;
+    border-top: 1px solid var(--surface-border);
+    margin: 36px 0;
+  }
+
+  /* Usage section */
+  .usage-grid {
+    display: grid;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .usage-item {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .usage-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+    color: var(--accent-text);
+  }
+  .usage-val {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--surface-border);
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    text-align: center;
+  }
+  .footer a {
+    color: var(--accent-text);
+    text-decoration: none;
+  }
+  .footer a:hover { text-decoration: underline; }
+</style>
+
+<h1>/annotate</h1>
+<p class="subtitle">Add a comment layer to any HTML prototype for engineering handover. Place numbered pins with categorised notes directly on screens — comments save into the HTML file itself.</p>
+
+<div class="categories">
+  <span class="cat-pill note"><span class="cat-dot"></span> Note</span>
+  <span class="cat-pill logic"><span class="cat-dot"></span> Logic</span>
+  <span class="cat-pill reference"><span class="cat-dot"></span> Reference</span>
+</div>
+
+<h2>Install</h2>
+
+<p>Download the zip below, unzip it, and drop the <code>annotate</code> folder into your project's <code>.claude/skills/</code> directory. The folder structure must look exactly like this:</p>
+
+<div class="file-tree">
+  <span class="folder">your-project/</span><br>
+  &nbsp;&nbsp;<span class="folder">.claude/</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">skills/</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">annotate/</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">skill.md</span> <span class="required">required</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">annotate-module.html</span>
+</div>
+
+<div class="callout">
+  <strong>Heads up:</strong> The <code>.claude</code> folder is hidden by default in Finder. Press <strong>Cmd + Shift + .</strong> to toggle hidden files, or create it from the terminal.
+</div>
+
+<ol class="steps">
+  <li class="step">
+    <span class="step-num">1</span>
+    <div class="step-content">
+      <p class="step-title">Download the skill</p>
+      <p class="step-desc">Grab the zip from the link below (or clone the GitHub repo). Unzip it — you'll get an <code>annotate/</code> folder with two files inside.</p>
+    </div>
+  </li>
+  <li class="step">
+    <span class="step-num">2</span>
+    <div class="step-content">
+      <p class="step-title">Add it to your project</p>
+      <p class="step-desc">Move the <code>annotate/</code> folder into <code>.claude/skills/</code> in whichever project you're prototyping in. Create the folders if they don't exist:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <code><span class="comment"># from your project root</span>
+mkdir -p .claude/skills
+<span class="comment"># then move the unzipped folder in</span>
+mv ~/Downloads/annotate .claude/skills/</code>
+      </div>
+    </div>
+  </li>
+  <li class="step">
+    <span class="step-num">3</span>
+    <div class="step-content">
+      <p class="step-title">Restart Claude Code</p>
+      <p class="step-desc">Close and reopen your Claude Code session (or start a new one in the project). The skill registers on startup.</p>
+    </div>
+  </li>
+  <li class="step">
+    <span class="step-num">4</span>
+    <div class="step-content">
+      <p class="step-title">Run it</p>
+      <p class="step-desc">Type <code>/annotate</code> in your Claude Code session. Claude will find your HTML prototype, inject the comment layer, and open a preview.</p>
+    </div>
+  </li>
+</ol>
+
+<hr>
+
+<h2>How it works</h2>
+
+<div class="usage-grid">
+  <div class="usage-item">
+    <span class="usage-key">Toggle</span>
+    <span class="usage-val">Click the pin button (bottom-right) to show/hide comments</span>
+  </div>
+  <div class="usage-item">
+    <span class="usage-key">Add</span>
+    <span class="usage-val">Click <strong>Add comment</strong> in the toolbar, then click anywhere on the screen</span>
+  </div>
+  <div class="usage-item">
+    <span class="usage-key">Save</span>
+    <span class="usage-val">Cmd/Ctrl+Enter saves a note. Tell Claude "save comments" to persist to the file.</span>
+  </div>
+  <div class="usage-item">
+    <span class="usage-key">Browse</span>
+    <span class="usage-val">Click <strong>All comments</strong> to open the drawer — click any comment to jump to its screen</span>
+  </div>
+  <div class="usage-item">
+    <span class="usage-key">Delete</span>
+    <span class="usage-val">Delete a comment from its popover. A 30-second undo toast appears in case of accidents.</span>
+  </div>
+</div>
+
+<hr>
+
+<h2>Alt: install from GitHub</h2>
+
+<div class="code-block">
+  <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  <code><span class="comment"># clone and copy into your project</span>
+git clone https://github.com/hbicmaxy/skills.git /tmp/hbicmaxy-skills
+cp -r /tmp/hbicmaxy-skills/skills/annotate .claude/skills/
+rm -rf /tmp/hbicmaxy-skills</code>
+</div>
+
+<div class="callout">
+  <strong>Note:</strong> The GitHub repo also needs <code>annotate.md</code> renamed to <code>skill.md</code> — do that on GitHub first, or rename it after cloning.
+</div>
+
+<div class="footer">
+  Made by the design team · <a href="https://github.com/hbicmaxy/skills">github.com/hbicmaxy/skills</a>
+</div>
+
+<script>
+function copyCode(btn) {
+  const code = btn.parentElement.querySelector('code');
+  const text = code.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+</script>
