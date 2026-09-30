@@ -13,3 +13,7 @@ npx skills@latest add hbicmaxy/skills
 [/annotate](https://github.com/hbicmaxy/skills/tree/main/skills/annotate)
 
 lets you add comments directly on top of any HTML prototype. perfect for adding notes, logic, or reference links for sharing async with your coworkers!
+
+[/product-thinking](https://github.com/hbicmaxy/skills/tree/main/skills/product-thinking)
+
+helps you stress-test a PRD, hypothesis, success metrics, or any other producty thinking reasoning.
