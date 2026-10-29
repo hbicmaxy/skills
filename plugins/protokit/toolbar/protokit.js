@@ -207,7 +207,6 @@
     .ticks::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: var(--bg3); border-radius: 1px; }
     .tick { position: absolute; top: -3px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 1.5px #6a6a6a; }
     .tick.ch { top: -5px; width: 10px; height: 10px; margin-left: -5px; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
-    .tick.live { top: -6px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
     .track input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
     .track input::-webkit-slider-runnable-track { height: 2px; background: transparent; }
     .track input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -6px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
@@ -644,7 +643,7 @@
     if (!v) { tlView.classList.remove('on'); return; }
     tlStruct = '';
     loadHistory(() => {
-      pos = tl ? tl.frames.length : 0;
+      pos = Math.max(0, (tl?.frames.length ?? 0) - 1); // the latest version
       const i = pendingFrame ? tl?.frames.findIndex((f) => f.n === pendingFrame) ?? -1 : -1;
       if (i >= 0) pos = i;
       pendingFrame = null;
@@ -656,7 +655,7 @@
       const n = tl?.frames.length ?? 0;
       loadHistory(() => {
         if ((tl?.frames.length ?? 0) === n) return;
-        if (pos >= n) pos = tl.frames.length;
+        if (pos >= n - 1) pos = tl.frames.length - 1; // stay on the latest
         updateTimeline();
       });
     }, 5000);
@@ -669,21 +668,21 @@
 
   function go(i) {
     const n = tl?.frames.length ?? 0;
-    pos = Math.max(0, Math.min(n, i));
+    pos = Math.max(0, Math.min(n - 1, i));
     updateTimeline();
   }
   // How many versions changed how a state looks.
   const changeCount = (name) => (tl?.frames || []).filter((_, i) => changedAt(i, name)).length;
-  // Shift+arrows: the previous or next version where the followed state changed (or Live).
+  // Shift+arrows: the previous or next version where the followed state changed.
   function jumpChange(dir) {
     const n = tl?.frames.length ?? 0, name = track().name;
     for (let j = pos + dir; j >= 0 && j < n; j += dir) if (changedAt(j, name)) return go(j);
-    if (dir > 0) go(n);
   }
+  // The next version play should show, or -1 at the end.
   function nextIndex(from) {
     const n = tl.frames.length, name = track().name;
     for (let j = from + 1; j < n; j++) if (!changesOnly || changedAt(j, name)) return j;
-    return n;
+    return -1;
   }
   function stopPlay() {
     clearInterval(playTimer);
@@ -693,12 +692,14 @@
   function togglePlay() {
     if (!tl?.frames.length) return;
     if (playTimer) return stopPlay();
-    if (pos >= tl.frames.length) pos = nextIndex(-1);
+    // At the end, play starts again from the beginning.
+    if (nextIndex(pos) < 0) pos = Math.max(0, nextIndex(-1));
     updateTimeline();
     playTimer = setInterval(() => {
       const next = nextIndex(pos);
+      if (next < 0) return stopPlay();
       go(next);
-      if (next >= tl.frames.length) stopPlay();
+      if (nextIndex(next) < 0) stopPlay();
     }, 800 / speed);
     tlEls.play.innerHTML = ICONS.pause;
   }
@@ -720,7 +721,7 @@
         return;
       }
       const range = h('input', {
-        type: 'range', min: 0, max: n, step: 1, 'aria-label': 'Timeline position',
+        type: 'range', min: 0, max: Math.max(0, n - 1), step: 1, 'aria-label': 'Timeline position',
         oninput: (e) => { stopPlay(); go(+e.target.value); },
       });
       tlEls = {
@@ -739,8 +740,7 @@
           tlEls.play,
           h('div', { class: 'track' },
             h('div', { class: 'ticks' },
-              frames.map((_, i) => h('span', { class: changedAt(i, t.name) ? 'tick ch' : 'tick', style: `left:${(i / n) * 100}%` })),
-              h('span', { class: 'tick live', style: 'left:100%' })),
+              frames.map((_, i) => h('span', { class: changedAt(i, t.name) ? 'tick ch' : 'tick', style: `left:${n > 1 ? (i / (n - 1)) * 100 : 0}%` }))),
             range),
           tlEls.pos,
           tlEls.picker,
@@ -757,21 +757,13 @@
     }
     if (!tlEls) return;
 
-    const live = pos >= n, f = frames[Math.min(pos, n - 1)];
+    const f = frames[Math.min(pos, n - 1)];
     tlEls.range.value = pos;
-    tlEls.pos.textContent = live ? 'Live' : `${pos + 1} / ${n}`;
+    tlEls.pos.textContent = `${pos + 1} / ${n}`;
     tlEls.speed.textContent = `${speed}\u00d7`;
     if (tlEls.picker.value !== t.name) tlEls.picker.value = t.name;
     tlEls.picker.style.display = capturedStates().length > 1 ? '' : 'none';
-    tlView.classList.toggle('on', !live);
-
-    if (live) {
-      tlEls.meta.replaceChildren(...[h('b', {}, 'Live'), h('span', {}, 'the prototype as it is now'),
-        t.name !== 'Default' ? h('span', {}, `${t.name} changed in ${changeCount(t.name)} of ${n} versions`) : null].filter(Boolean));
-      tlEls.note.replaceChildren();
-      tlEls.links.replaceChildren(h('a', { href: new URL('index.html', historyBase).href, target: '_blank' }, 'All frames \u2197'));
-      return;
-    }
+    tlView.classList.add('on');
     const shot = shotAt(pos, t.name) || f.shots[0];
     const img = tlView.querySelector('img'), src = shot ? new URL(shot.file, historyBase).href : '';
     if (img.getAttribute('src') !== src) {
