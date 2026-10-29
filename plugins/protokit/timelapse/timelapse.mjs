@@ -14,6 +14,8 @@
 //   node timelapse.mjs capture <file.html> ["note"]
 //
 // Frames land next to the prototype in .timelapse/<name>/ — open index.html there for the canvas.
+// If .timelapse/<name>/next-summary.txt exists when a version is recorded, its first line becomes
+// that version's summary (Claude writes it; see the prototype skill).
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -175,6 +177,11 @@ async function captureFrame(file, notes = []) {
   let manifest = { name, file, frames: [] };
   try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch {}
   const last = manifest.frames.at(-1);
+  // Claude leaves a one-line summary of the turn's change here; it belongs to this version or none.
+  const summaryPath = path.join(base, 'next-summary.txt');
+  let summary = null;
+  try { summary = fs.readFileSync(summaryPath, 'utf8').trim().split('\n')[0].slice(0, 300) || null; } catch {}
+  fs.rmSync(summaryPath, { force: true });
   if (last?.hash === hash) { log('unchanged', file); return null; }
   // Versions saved before assets counted were hashed from the HTML alone: upgrade, don't re-capture.
   // Earlier versions hashed the HTML alone, or the toolbar line too: if one of those still matches,
@@ -205,6 +212,7 @@ async function captureFrame(file, notes = []) {
   manifest.frames.push({
     n, hash, at: new Date().toISOString(),
     notes: notes.map((p) => (p.length > 600 ? p.slice(0, 600) + '…' : p)),
+    ...(summary ? { summary } : {}),
     shot: shots[0]?.file || null, shots, viewport, html: `frames/${id}.html`, stat,
   });
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));

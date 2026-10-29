@@ -788,8 +788,8 @@
     const shotW = f.viewport?.width ?? 1440, nowW = (rotated ? sizeOf(viewport).h : sizeOf(viewport).w);
     if (shotW !== nowW) meta.push(h('span', { class: 'warn' }, `Screenshots are ${shotW >= 1000 ? 'desktop' : shotW >= 700 ? 'tablet' : 'mobile'} size`));
     tlEls.meta.replaceChildren(...meta);
-    // A handover's one-line summary reads better than the prompt behind it.
-    tlEls.note.textContent = f.summary || f.notes?.at(-1) || '';
+    // A one-line summary of what changed, never the prompt behind it.
+    tlEls.note.textContent = f.summary || '';
 
     const links = [];
     if (f.html) {

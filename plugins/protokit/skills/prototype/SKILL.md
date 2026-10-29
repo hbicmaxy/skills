@@ -31,7 +31,7 @@ Prefer one folder per prototype. A prototype can be a single HTML file or HTML p
 Add this line before the prototype's own scripts:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.4/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.5/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 Keep the version pinned. To move a prototype to a newer release, change the tag (`protokit--vX.Y.Z`).
@@ -51,6 +51,12 @@ Call `Protokit.init({...})` once the prototype's state exists and before the pag
 - **`viewports`**: the sizes to offer, from `desktop`, `tablet` and `mobile`. Leave it out for a responsive web page. For a mobile app, use `['mobile', 'tablet']`. It then opens on a phone and is recorded at phone size. Ask the user if it's unclear.
 
 Don't build your own state-switching panel or layout controls into the page. The toolbar provides them.
+
+## Summarise every change
+
+The timeline and its All Frames page caption each version with a one-line summary of what changed, never the user's prompt. Timelapse records the version when your turn ends, so write the summary before you finish.
+
+**In every turn where you change a prototype**, write one sentence to `.timelapse/<file name without .html>/next-summary.txt` inside the prototype's folder (create the folders if needed). For example, `~/Documents/Prototypes/stash/.timelapse/index/next-summary.txt` for `stash/index.html`. Overwrite whatever is there. Describe the change as a reviewer would see it, e.g. *Stash list now groups hobbies by where you can do them*. Don't restate the prompt. If nothing visible changed, say what did (e.g. *Fixed the results order when two hobbies tie; no visual change*).
 
 ## Comments
 
