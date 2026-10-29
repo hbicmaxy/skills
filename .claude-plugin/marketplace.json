@@ -1,0 +1,15 @@
+{
+  "name": "hbicmaxy",
+  "description": "Maxy's Claude Code plugins for designing and handing over prototypes.",
+  "owner": {
+    "name": "Maxy"
+  },
+  "plugins": [
+    {
+      "name": "protokit",
+      "source": "./plugins/protokit",
+      "description": "A toolbar for HTML prototypes (states, devices, timeline, comments), automatic version history with Timelapse, and one-link handovers for PRs.",
+      "version": "1.0.0"
+    }
+  ]
+}

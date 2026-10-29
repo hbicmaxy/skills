@@ -1,0 +1,12 @@
+{
+  "name": "protokit",
+  "version": "1.0.0",
+  "description": "A toolbar for HTML prototypes (states, devices, timeline, comments), automatic version history with Timelapse, and one-link handovers for PRs.",
+  "author": {
+    "name": "Maxy"
+  },
+  "homepage": "https://github.com/hbicmaxy/skills/tree/main/plugins/protokit",
+  "repository": "https://github.com/hbicmaxy/skills",
+  "license": "MIT",
+  "keywords": ["prototype", "design", "handover", "timelapse", "comments"]
+}

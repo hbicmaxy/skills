@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timelapse</title>
+<style>
+  :root {
+    --canvas: #f0f0f0;
+    --dot: #d2d2d2;
+    --panel: #ffffff;
+    --ink: #1e1e1e;
+    --muted: #7a7a7a;
+    --line: #e4e4e4;
+    --frame-bg: #ffffff;
+    --accent: #0d99ff;
+    --accent-soft: rgba(13, 153, 255, 0.12);
+    --add: #14ae5c;
+    --remove: #e5484d;
+    --scrim: rgba(18, 18, 18, 0.72);
+    --shadow: 0 1px 2px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: #1e1e1e;
+      --dot: #353535;
+      --panel: #2c2c2c;
+      --ink: #f2f2f2;
+      --muted: #9a9a9a;
+      --line: #3a3a3a;
+      --frame-bg: #2c2c2c;
+      --scrim: rgba(0, 0, 0, 0.8);
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--canvas); color: var(--ink); overflow: hidden;
+    font: 13px/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button {
+    font: inherit; color: inherit; background: none; border: 0; cursor: pointer;
+    height: 28px; padding: 0 10px; border-radius: 6px;
+  }
+  button:hover { background: var(--accent-soft); }
+  button.on { background: var(--accent); color: #fff; }
+  button:disabled { opacity: .35; cursor: default; background: none; }
+  kbd { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
+
+  /* ---------- top bar ---------- */
+  header {
+    position: fixed; inset: 0 0 auto 0; height: 48px; z-index: 5;
+    display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .spacer { flex: 1; }
+  .zoom { display: flex; align-items: center; gap: 2px; }
+  #zoomPct { min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+
+  /* ---------- canvas ---------- */
+  #viewport {
+    position: fixed; inset: 48px 0 0 0; cursor: default; touch-action: none;
+    background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  }
+  #viewport.panning { cursor: grabbing; }
+  #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  #world.glide { transition: transform .28s cubic-bezier(.2,.7,.2,1); }
+  #world > * { position: absolute; left: 0; top: 0; }
+
+  .day-label { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+  .day-label small { font-size: 18px; font-weight: 400; color: var(--muted); margin-left: 10px; }
+  .state-label {
+    width: 220px; height: var(--cell-h, 300px); display: flex; align-items: center; justify-content: flex-end; text-align: right;
+    font-size: 20px; font-weight: 600; line-height: 1.25; color: var(--ink);
+  }
+  .col-head { width: var(--cell-w, 480px); }
+  .col-head .day { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; height: 40px; white-space: nowrap; }
+  .frame-label {
+    display: flex; gap: 8px; align-items: baseline; height: 22px; font-size: 12px; color: var(--muted);
+    white-space: nowrap;
+  }
+  .frame-label b { color: var(--ink); font-weight: 600; }
+  .frame-label .changed { color: var(--accent); }
+  .frame-note {
+    font-size: 13px; color: var(--ink);
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .col-head .frame-note { -webkit-line-clamp: 3; margin-top: 4px; }
+  .frame-note .more { color: var(--muted); }
+  .frame { width: var(--cell-w, 480px); }
+  .frame > .frame-note { margin-top: 10px; }
+  .cell {
+    width: var(--cell-w, 480px); height: var(--cell-h, 300px); background: var(--frame-bg); box-shadow: var(--shadow);
+    border-radius: 2px; overflow: hidden; cursor: zoom-in; position: relative; transition: opacity .15s;
+  }
+  .cell img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; pointer-events: none; }
+  .cell .noshot {
+    position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 12px;
+  }
+  .cell.same { opacity: .32; }
+  .cell.same:hover, .cell.same.sel { opacity: 1; }
+  .cell.sel { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stat { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .stat .a { color: var(--add); }
+  .stat .r { color: var(--remove); }
+
+  #hint {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 4;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow);
+    padding: 6px 12px; color: var(--muted); font-size: 12px; white-space: nowrap;
+  }
+  #empty {
+    position: fixed; inset: 48px 0 0 0; display: none; place-content: center; text-align: center; color: var(--muted);
+  }
+  #empty h2 { color: var(--ink); font-size: 16px; margin: 0 0 6px; }
+
+  /* ---------- inspect ---------- */
+  #inspect {
+    position: fixed; inset: 0; z-index: 10; background: var(--scrim); display: none;
+    grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);
+  }
+  #inspect.open { display: grid; }
+  .ibar {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px 10px 16px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .ibar .title { min-width: 0; flex: none; }
+  .ibar .meta { min-width: 0; }
+  .ibar button { white-space: nowrap; }
+  .state-nav { display: flex; align-items: center; gap: 2px; min-width: 0; }
+  .state-nav button { padding: 0 8px; }
+  #iState { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stage { position: relative; min-height: 0; overflow: auto; padding: 24px 72px; container-type: size; }
+  .shot-wrap {
+    position: relative; margin: 0 auto; width: min(100cqw, 100cqh * var(--ratio, 1.6));
+    box-shadow: 0 8px 40px rgba(0,0,0,.4); background: var(--frame-bg); touch-action: none;
+  }
+  #imgAfter { display: block; width: 100%; user-select: none; -webkit-user-drag: none; }
+  #imgBefore { display: none; position: absolute; left: 0; top: 0; width: 100%; user-select: none; -webkit-user-drag: none; }
+  .compare #imgBefore { display: block; }
+  .compare #imgAfter { clip-path: inset(0 0 0 var(--split, 50%)); position: relative; }
+  #handle {
+    display: none; position: absolute; top: 0; bottom: 0; left: var(--split, 50%); width: 2px; margin-left: -1px;
+    background: var(--accent); cursor: ew-resize; z-index: 1;
+  }
+  #handle::after {
+    content: "⇆"; position: sticky; top: 50%; display: grid; place-items: center; transform: translateX(-13px);
+    width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 14px;
+  }
+  .compare #handle { display: block; }
+  .tag {
+    display: none; position: absolute; top: 10px; padding: 2px 8px; border-radius: 4px; z-index: 1;
+    background: rgba(0,0,0,.65); color: #fff; font-size: 11px; pointer-events: none;
+  }
+  .compare .tag { display: block; }
+  #tagBefore { left: 10px; } #tagAfter { right: 10px; }
+  #iEmpty { color: #fff; text-align: center; padding: 80px 0; display: none; }
+  .nav {
+    position: fixed; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%; z-index: 11;
+    background: var(--panel); box-shadow: var(--shadow); font-size: 18px; padding: 0;
+  }
+  .nav:disabled { opacity: .3; background: var(--panel); }
+  #prev { left: 16px; } #next { right: 16px; }
+  .notes {
+    background: var(--panel); border-top: 1px solid var(--line); padding: 12px 16px 14px;
+    max-height: 28vh; overflow: auto;
+  }
+  .notes p { margin: 0 0 6px; white-space: pre-wrap; }
+  .notes p.earlier { color: var(--muted); }
+  .notes p.earlier::before { content: "earlier · "; font-size: 11px; }
+
+  @media (max-width: 640px) {
+    .meta, #hint { display: none; }
+    .stage { padding: 16px; }
+    .nav { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="title" id="title">Timelapse</div>
+  <div class="meta" id="meta"></div>
+  <div class="spacer"></div>
+  <div class="zoom">
+    <button id="zoomOut" title="Zoom out (−)">−</button>
+    <span id="zoomPct">100%</span>
+    <button id="zoomIn" title="Zoom in (+)">+</button>
+  </div>
+  <button id="fit" title="Zoom to fit (⇧1)">Fit</button>
+</header>
+
+<div id="viewport"><div id="world"></div></div>
+<div id="empty"><div><h2>No frames yet</h2>Frames appear here automatically after each Claude turn that changes this prototype.</div></div>
+<div id="hint"></div>
+
+<div id="inspect">
+  <div class="ibar">
+    <div class="title" id="iTitle"></div>
+    <div class="state-nav" id="stateNav">
+      <button id="stateUp" title="Previous state (↑)">↑</button>
+      <span id="iState"></span>
+      <button id="stateDown" title="Next state (↓)">↓</button>
+    </div>
+    <div class="meta" id="iMeta"></div>
+    <div class="spacer"></div>
+    <button id="compareBtn" title="Compare with previous frame (C)">Compare with previous</button>
+    <button id="liveBtn" title="Open this version as a working prototype (O)">Open live ↗</button>
+    <button id="closeBtn" title="Close (Esc)">✕</button>
+  </div>
+  <div class="stage" id="stage">
+    <div class="shot-wrap" id="shotWrap">
+      <img id="imgBefore" alt="">
+      <img id="imgAfter" alt="">
+      <div id="handle"></div>
+      <span class="tag" id="tagBefore"></span><span class="tag" id="tagAfter"></span>
+    </div>
+    <div id="iEmpty">This state wasn't captured in this frame.</div>
+  </div>
+  <button class="nav" id="prev" title="Previous frame (←)">‹</button>
+  <button class="nav" id="next" title="Next frame (→)">›</button>
+  <div class="notes" id="iNotes"></div>
+</div>
+
+<script src="frames.js"></script>
+<script>
+(() => {
+  // Cell size follows the screenshots: desktop is landscape, a mobile prototype is portrait.
+  let W = 480, H = 300;
+  // Single-state layout: one row of frames per day.
+  const GAP_X = 80, ROW_GAP = 140, DAY_H = 56;
+  let FRAME_H = 22 + H + 100;
+  // Multi-state layout: a grid with states as rows and frames as columns.
+  const LABEL_W = 260, COL_GAP = 48, HEAD_H = 160, CELL_GAP = 40;
+
+  const $ = (id) => document.getElementById(id);
+  const viewport = $('viewport'), world = $('world');
+  let data = { frames: [] }, states = [], grid = false;
+  let view = { x: 80, y: 80, k: 1 };
+  let sel = null, inspecting = null, comparing = false; // sel / inspecting = { f, s } (frame index, state index)
+  let cells = new Map(); // "f:s" -> { x, y }
+
+  const fmtTime = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const fmtDay = (iso) => new Date(iso).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const statEl = (s) => {
+    const span = el('span', 'stat');
+    if (!s) return span;
+    span.append(el('span', 'a', `+${s.added}`), ' ', el('span', 'r', `−${s.removed}`));
+    return span;
+  };
+  const noteEl = (f) => {
+    const note = el('div', 'frame-note');
+    const notes = f.notes || [];
+    note.append(notes.at(-1) || '');
+    if (notes.length > 1) note.prepend(el('span', 'more', `+${notes.length - 1} earlier · `));
+    return note;
+  };
+
+  // ---------- data ----------
+  function load(next) {
+    data = next || { frames: [] };
+    // Frames from before multi-state capture have a single screenshot.
+    data.frames.forEach((f) => { if (!f.shots) f.shots = [{ state: 'Default', file: f.shot, hash: null }]; });
+    states = [];
+    data.frames.forEach((f) => f.shots.forEach((s) => { if (!states.includes(s.state)) states.push(s.state); }));
+    grid = !(states.length <= 1 && (states[0] ?? 'Default') === 'Default');
+    const vp = data.frames.at(-1)?.viewport || { width: 1440, height: 900 };
+    const ratio = vp.width / vp.height;
+    if (ratio < 1) { W = 240; H = Math.round(W / ratio); } else { W = 480; H = 300; }
+    FRAME_H = 22 + H + 100;
+    const root = document.documentElement.style;
+    root.setProperty('--cell-w', `${W}px`);
+    root.setProperty('--cell-h', `${H}px`);
+    root.setProperty('--ratio', ratio.toFixed(4));
+  }
+  const shotOf = (f, s) => data.frames[f]?.shots.find((x) => x.state === states[s]) || null;
+  const prevWith = (f, s) => { for (let i = f - 1; i >= 0; i--) if (shotOf(i, s)) return i; return -1; };
+  // A state "changed" in a frame when its screenshot differs from the last frame that captured it.
+  const changed = (f, s) => {
+    const shot = shotOf(f, s); if (!shot) return false;
+    const p = prevWith(f, s); if (p < 0) return true;
+    return !shot.hash || shot.hash !== shotOf(p, s).hash;
+  };
+
+  // ---------- render ----------
+  function render() {
+    const frames = data.frames;
+    $('title').textContent = data.title || data.name || 'Timelapse';
+    document.title = `${data.title || data.name || 'Prototype'} · Timelapse`;
+    $('empty').style.display = frames.length ? 'none' : 'grid';
+    $('hint').style.display = frames.length ? '' : 'none';
+    $('hint').innerHTML = 'Scroll to pan · <kbd>⌘</kbd>/pinch to zoom · double-click to inspect · <kbd>←</kbd><kbd>→</kbd> frames'
+      + (grid ? ' · <kbd>↑</kbd><kbd>↓</kbd> states' : '') + ' · <kbd>⇧1</kbd> fit';
+    if (frames.length) {
+      const first = frames[0].at, last = frames.at(-1).at;
+      const range = fmtDay(first) === fmtDay(last) ? fmtDay(first) : `${fmtDay(first)} – ${fmtDay(last)}`;
+      $('meta').textContent = `${frames.length} frame${frames.length === 1 ? '' : 's'}`
+        + (grid ? ` · ${states.length} states` : '') + ` · ${range}`;
+    }
+    world.replaceChildren();
+    cells = new Map();
+    grid ? renderGrid() : renderRows();
+    markSelected();
+  }
+
+  const place = (node, x, y) => { node.style.transform = `translate(${x}px, ${y}px)`; world.append(node); return node; };
+
+  function cellEl(f, s) {
+    const shot = shotOf(f, s);
+    const box = el('div', 'cell');
+    box.dataset.f = f; box.dataset.s = s;
+    if (shot?.file) {
+      const img = el('img'); img.src = shot.file; img.alt = `Frame ${data.frames[f].n}, ${states[s]}`; img.decoding = 'async';
+      box.append(img);
+    } else box.append(el('div', 'noshot', 'No screenshot — open live to view'));
+    if (grid && !changed(f, s)) box.classList.add('same');
+    return box;
+  }
+
+  function renderRows() {
+    const frames = data.frames;
+    const days = [];
+    frames.forEach((f, i) => {
+      const key = new Date(f.at).toDateString();
+      if (!days.length || days.at(-1).key !== key) days.push({ key, items: [] });
+      days.at(-1).items.push(i);
+    });
+    let y = 0;
+    days.forEach((day) => {
+      const label = el('div', 'day-label', fmtDay(frames[day.items[0]].at));
+      label.append(el('small', null, `${day.items.length} frame${day.items.length === 1 ? '' : 's'}`));
+      place(label, 0, y);
+      day.items.forEach((i, col) => {
+        const f = frames[i], x = col * (W + GAP_X), fy = y + DAY_H;
+        cells.set(`${i}:0`, { x, y: fy + 22 });
+        const card = el('div', 'frame');
+        const lab = el('div', 'frame-label');
+        lab.append(el('b', null, `#${f.n}`), el('span', null, fmtTime(f.at)), statEl(f.stat));
+        card.append(lab, cellEl(i, 0), noteEl(f));
+        place(card, x, fy);
+      });
+      y += DAY_H + FRAME_H + ROW_GAP;
+    });
+  }
+
+  function renderGrid() {
+    const frames = data.frames;
+    states.forEach((name, s) => place(el('div', 'state-label', name), 0, HEAD_H + s * (H + CELL_GAP)));
+    frames.forEach((f, i) => {
+      const x = LABEL_W + i * (W + COL_GAP);
+      const head = el('div', 'col-head');
+      const newDay = i === 0 || fmtDay(frames[i - 1].at) !== fmtDay(f.at);
+      head.append(el('div', 'day', newDay ? fmtDay(f.at) : ''));
+      const lab = el('div', 'frame-label');
+      const n = states.filter((_, s) => changed(i, s)).length;
+      lab.append(el('b', null, `#${f.n}`), el('span', null, fmtTime(f.at)), statEl(f.stat),
+        el('span', n ? 'changed' : '', i === 0 ? '' : `${n} of ${f.shots.length} states changed`));
+      head.append(lab, noteEl(f));
+      place(head, x, 0);
+      states.forEach((_, s) => {
+        const y = HEAD_H + s * (H + CELL_GAP);
+        cells.set(`${i}:${s}`, { x, y });
+        place(cellEl(i, s), x, y);
+      });
+    });
+  }
+
+  function bounds() {
+    const n = data.frames.length;
+    if (!n) return { x: 0, y: 0, w: 1, h: 1 };
+    if (grid) return { x: 0, y: 0, w: LABEL_W + n * (W + COL_GAP) - COL_GAP, h: HEAD_H + states.length * (H + CELL_GAP) - CELL_GAP };
+    const pts = [...cells.values()];
+    return { x: 0, y: 0, w: Math.max(...pts.map((p) => p.x)) + W, h: Math.max(...pts.map((p) => p.y)) + H + 100 };
+  }
+
+  // ---------- view transform ----------
+  function apply(glide) {
+    world.classList.toggle('glide', !!glide);
+    world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
+    const g = 24 * view.k;
+    viewport.style.backgroundSize = `${g}px ${g}px`;
+    viewport.style.backgroundPosition = `${view.x}px ${view.y}px`;
+    $('zoomPct').textContent = `${Math.round(view.k * 100)}%`;
+  }
+  const clampK = (k) => Math.min(4, Math.max(0.03, k));
+  function zoomAt(k, cx, cy, glide) {
+    k = clampK(k);
+    view.x = cx - (cx - view.x) * (k / view.k);
+    view.y = cy - (cy - view.y) * (k / view.k);
+    view.k = k;
+    apply(glide);
+  }
+  let fitted = false;
+  function fit(glide = true) {
+    const b = bounds(), vw = viewport.clientWidth, vh = viewport.clientHeight, pad = 80;
+    if (vw < pad * 3 || vh < pad * 3) return; // not laid out yet (e.g. opened in a background tab)
+    fitted = true;
+    const k = clampK(Math.min((vw - pad * 2) / b.w, (vh - pad * 2) / b.h, 1));
+    view = { k, x: (vw - b.w * k) / 2 - b.x * k, y: (vh - b.h * k) / 2 - b.y * k };
+    apply(glide);
+  }
+  function centerOn({ f, s }) {
+    const p = cells.get(`${f}:${s}`); if (!p) return;
+    const vw = viewport.clientWidth, vh = viewport.clientHeight;
+    view.x = vw / 2 - (p.x + W / 2) * view.k;
+    view.y = vh / 2 - (p.y + H / 2) * view.k;
+    apply(true);
+  }
+
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const r = viewport.getBoundingClientRect();
+    if (e.ctrlKey || e.metaKey) zoomAt(view.k * Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top);
+    else { view.x -= e.deltaX; view.y -= e.deltaY; apply(); }
+  }, { passive: false });
+
+  const cellAt = (x, y) => {
+    const c = document.elementFromPoint(x, y)?.closest('.cell');
+    return c ? { f: +c.dataset.f, s: +c.dataset.s } : null;
+  };
+  let drag = null;
+  viewport.addEventListener('pointerdown', (e) => {
+    drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false };
+    viewport.setPointerCapture(e.pointerId);
+  });
+  viewport.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    drag.moved = true;
+    viewport.classList.add('panning');
+    view.x = drag.vx + dx; view.y = drag.vy + dy; apply();
+  });
+  viewport.addEventListener('pointerup', (e) => {
+    const wasDrag = drag?.moved;
+    drag = null; viewport.classList.remove('panning');
+    if (!wasDrag) select(cellAt(e.clientX, e.clientY)); // pointer capture retargets events, so hit-test
+  });
+  viewport.addEventListener('dblclick', (e) => { const c = cellAt(e.clientX, e.clientY); if (c) openInspect(c); });
+
+  function markSelected() {
+    world.querySelectorAll('.cell').forEach((c) =>
+      c.classList.toggle('sel', !!sel && +c.dataset.f === sel.f && +c.dataset.s === sel.s));
+  }
+  function select(c) { sel = c; markSelected(); }
+
+  $('fit').onclick = () => fit();
+  $('zoomIn').onclick = () => zoomAt(view.k * 1.25, viewport.clientWidth / 2, viewport.clientHeight / 2, true);
+  $('zoomOut').onclick = () => zoomAt(view.k / 1.25, viewport.clientWidth / 2, viewport.clientHeight / 2, true);
+  $('zoomPct').ondblclick = () => zoomAt(1, viewport.clientWidth / 2, viewport.clientHeight / 2, true);
+
+  // ---------- inspect ----------
+  function openInspect(c) {
+    const frames = data.frames;
+    if (!c || c.f < 0 || c.f >= frames.length || c.s < 0 || c.s >= states.length) return;
+    inspecting = c; select(c);
+    const f = frames[c.f], shot = shotOf(c.f, c.s);
+    const p = prevWith(c.f, c.s), prev = p >= 0 ? shotOf(p, c.s) : null;
+    if (!prev) comparing = false;
+    $('inspect').classList.add('open');
+    $('iTitle').textContent = `#${f.n}`;
+    $('stateNav').style.display = grid ? '' : 'none';
+    $('iState').textContent = `${states[c.s]} (${c.s + 1} of ${states.length})`;
+    $('stateUp').disabled = c.s === 0;
+    $('stateDown').disabled = c.s === states.length - 1;
+    const status = !grid || c.f === 0 ? '' : changed(c.f, c.s) ? ' · changed' : ' · unchanged';
+    $('iMeta').replaceChildren(`${fmtDay(f.at)}, ${fmtTime(f.at)}${status}  `, statEl(f.stat));
+    $('shotWrap').style.display = shot ? '' : 'none';
+    $('iEmpty').style.display = shot ? 'none' : 'block';
+    $('imgAfter').src = shot?.file || '';
+    $('imgBefore').src = prev?.file || '';
+    $('tagBefore').textContent = prev ? `#${frames[p].n}` : '';
+    $('tagAfter').textContent = `#${f.n}`;
+    $('shotWrap').classList.toggle('compare', comparing);
+    $('compareBtn').classList.toggle('on', comparing);
+    $('compareBtn').disabled = !prev;
+    $('liveBtn').style.display = f.html ? '' : 'none'; // handover exports ship screenshots only
+    $('prev').disabled = c.f === 0;
+    $('next').disabled = c.f === frames.length - 1;
+    const notes = f.notes || [];
+    $('iNotes').replaceChildren(...(notes.length ? notes : ['(no prompt recorded)']).map((t, k) =>
+      el('p', k < notes.length - 1 ? 'earlier' : '', t)));
+  }
+  const step = (df, ds) => inspecting && openInspect({ f: inspecting.f + df, s: inspecting.s + ds });
+  function closeInspect() {
+    $('inspect').classList.remove('open');
+    if (inspecting) centerOn(inspecting);
+    inspecting = null;
+  }
+  const openLive = () => { const f = inspecting && data.frames[inspecting.f]; if (f) window.open(f.html, '_blank'); };
+  const toggleCompare = () => { if (inspecting && prevWith(inspecting.f, inspecting.s) >= 0) { comparing = !comparing; openInspect(inspecting); } };
+
+  $('closeBtn').onclick = closeInspect;
+  $('liveBtn').onclick = openLive;
+  $('compareBtn').onclick = toggleCompare;
+  $('prev').onclick = () => step(-1, 0);
+  $('next').onclick = () => step(1, 0);
+  $('stateUp').onclick = () => step(0, -1);
+  $('stateDown').onclick = () => step(0, 1);
+  $('stage').addEventListener('click', (e) => { if (e.target.id === 'stage') closeInspect(); });
+
+  const wrap = $('shotWrap');
+  let splitting = false;
+  const setSplit = (clientX) => {
+    const r = wrap.getBoundingClientRect();
+    const pct = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
+    wrap.style.setProperty('--split', `${pct}%`);
+  };
+  wrap.addEventListener('pointerdown', (e) => {
+    if (!comparing) return;
+    splitting = true; wrap.setPointerCapture(e.pointerId); setSplit(e.clientX);
+  });
+  wrap.addEventListener('pointermove', (e) => { if (splitting) setSplit(e.clientX); });
+  wrap.addEventListener('pointerup', () => { splitting = false; });
+
+  // ---------- keyboard ----------
+  const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  document.addEventListener('keydown', (e) => {
+    const n = data.frames.length;
+    if (inspecting) {
+      if (e.key === 'Escape') closeInspect();
+      else if (arrows[e.key]) { e.preventDefault(); step(...arrows[e.key]); }
+      else if (e.key === 'c' || e.key === 'C') toggleCompare();
+      else if (e.key === 'o' || e.key === 'O') openLive();
+      return;
+    }
+    if (e.shiftKey && e.code === 'Digit1') { e.preventDefault(); fit(); }
+    else if (e.key === '=' || e.key === '+') $('zoomIn').click();
+    else if (e.key === '-') $('zoomOut').click();
+    else if (e.key === 'Escape') select(null);
+    else if (e.key === 'Enter' && sel) openInspect(sel);
+    else if (arrows[e.key] && n) {
+      e.preventDefault();
+      const [df, ds] = arrows[e.key];
+      const c = sel
+        ? { f: Math.min(n - 1, Math.max(0, sel.f + df)), s: Math.min(states.length - 1, Math.max(0, sel.s + ds)) }
+        : { f: df < 0 ? n - 1 : 0, s: 0 };
+      select(c); centerOn(c);
+    }
+  });
+
+  // ---------- live refresh: pick up new frames while you keep working ----------
+  setInterval(() => {
+    const s = document.createElement('script');
+    s.src = `frames.js?t=${Date.now()}`;
+    s.onload = s.onerror = () => {
+      s.remove();
+      const next = window.TIMELAPSE;
+      if (next && next.frames.length !== data.frames.length) {
+        const wasEmpty = !data.frames.length;
+        load(next); render();
+        if (wasEmpty) fit(false);
+      }
+    };
+    document.head.append(s);
+  }, 4000);
+
+  load(window.TIMELAPSE);
+  render();
+  if (data.frames.length) fit(false); else apply();
+  window.addEventListener('resize', () => (!fitted && data.frames.length ? fit(false) : apply()));
+})();
+</script>
+</body>
+</html>

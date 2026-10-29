@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project list — Protokit example</title>
+<style>
+  body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #f6f7f9; color: #1d2433; }
+  main { max-width: 720px; margin: 48px auto; padding: 0 16px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #6b7385; margin: 0 0 24px; }
+  .list { display: grid; gap: 10px; }
+  .list.grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .card { background: #fff; border: 1px solid #e3e6ec; border-radius: 10px; padding: 14px 16px; }
+  .card b { display: block; }
+  .card span { color: #6b7385; font-size: 13px; }
+  .empty, .error { text-align: center; padding: 48px 16px; border: 1px dashed #cfd4dd; border-radius: 10px; color: #6b7385; }
+  .error { border-color: #f1b8b8; background: #fff5f5; color: #a33; }
+  .skeleton { height: 58px; border-radius: 10px; background: linear-gradient(90deg, #eceef2, #f6f7f9, #eceef2); background-size: 200% 100%; animation: sh 1.2s infinite; }
+  @keyframes sh { to { background-position: -200% 0; } }
+  .banner { background: #fff4d6; border: 1px solid #f0d58a; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+
+<script src="protokit.js"></script>
+<script>
+  // The prototype's state: everything the page renders from.
+  const state = { projects: 6, loading: false, error: false, role: 'admin', trialDays: 0 };
+  let layout = 'list';
+
+  function render() {
+    const app = document.getElementById('app');
+    const items = Array.from({ length: state.projects }, (_, i) =>
+      `<div class="card"><b>Project ${i + 1}</b><span>Updated ${i + 1}d ago</span></div>`).join('');
+    app.innerHTML = `
+      ${state.trialDays > 0 ? `<div class="banner">${state.trialDays} days left in your trial</div>` : ''}
+      <h1>Projects</h1>
+      <p class="sub">${state.role === 'admin' ? 'Everything in your organisation' : 'Projects shared with you'}</p>
+      ${state.loading ? '<div class="list"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>'
+        : state.error ? '<div class="error">Couldn’t load projects. Try again.</div>'
+        : state.projects === 0 ? '<div class="empty">No projects yet</div>'
+        : `<div class="list ${layout === 'grid' ? 'grid' : ''}">${items}</div>`}`;
+  }
+  render();
+
+  // Describe the prototype to the toolbar. Everything here is optional.
+  Protokit.init({
+    title: 'Project list',
+    state,
+    onChange: render, // plain JS doesn't re-render by itself
+    variants: {
+      options: { list: 'List', grid: 'Grid' },
+      get: () => layout,
+      set: (v) => { layout = v; render(); },
+    },
+    presets: [
+      { name: 'Populated', values: {} },
+      { name: 'Empty', values: { projects: 0 } },
+      { name: 'Loading', values: { loading: true } },
+      { name: 'Error', values: { error: true } },
+      { name: 'Member, trial ending', values: { role: 'member', trialDays: 3 } },
+    ],
+    controls: [
+      { group: 'Data' },
+      { key: 'projects', label: 'Projects', type: 'number', min: 0 },
+      { key: 'loading', label: 'Loading' },
+      { key: 'error', label: 'Failed to load', disabled: (s) => s.loading },
+      { group: 'Account' },
+      { key: 'role', label: 'Viewer', options: { admin: 'Admin', member: 'Member' } },
+      { key: 'trialDays', label: 'Trial days left', type: 'number', min: 0 },
+    ],
+    derived: (s) => ({ 'shows list': !s.loading && !s.error && s.projects > 0 }),
+  });
+</script>
+</body>
+</html>

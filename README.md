@@ -17,3 +17,13 @@ lets you add comments directly on top of any HTML prototype. perfect for adding 
 [/product-thinking](https://github.com/hbicmaxy/skills/tree/main/skills/product-thinking)
 
 helps you stress-test a PRD, hypothesis, success metrics, or any other producty thinking reasoning.
+
+## Plugins
+
+[protokit](https://github.com/hbicmaxy/skills/tree/main/plugins/protokit)
+
+a toolbar for HTML prototypes (states, devices, a timelapse of how it changed, comments), plus one-link handovers for PRs. it's a Claude Code plugin rather than a skill, so install it with:
+
+```
+/plugin install protokit --marketplace hbicmaxy/skills
+```
