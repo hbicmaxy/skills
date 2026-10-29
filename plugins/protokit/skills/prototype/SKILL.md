@@ -31,7 +31,7 @@ Prefer one folder per prototype. A prototype can be a single HTML file or HTML p
 Add this line before the prototype's own scripts:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.0/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.1/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 Keep the version pinned. To move a prototype to a newer release, change the tag (`protokit--vX.Y.Z`).
@@ -47,6 +47,7 @@ Call `Protokit.init({...})` once the prototype's state exists and before the pag
 - **`controls`**: the individual settings behind the presets, grouped with `{ group: '…' }`, with clear labels.
 - **`derived`**: read-only values worth checking (e.g. which layout the logic picked).
 - **`variants`**: only when there is an existing page to compare against. Label them `{ current: 'Current page', prototype: 'Prototype' }`, and set `capture: { variants: ['prototype'] }` so Timelapse records the new design only. With no existing page, leave `variants` out and no switch appears.
+- **`screen`**: for an app with several screens, the state key that says which screen is showing (e.g. `'screen'`). Give every screen at least one preset, so its history is captured. The timeline uses `screen` to follow the right one when the user has clicked into a state that isn't a preset.
 - **`viewports`**: the sizes to offer, from `desktop`, `tablet` and `mobile`. Leave it out for a responsive web page. For a mobile app, use `['mobile', 'tablet']`. It then opens on a phone and is recorded at phone size. Ask the user if it's unclear.
 
 Don't build your own state-switching panel or layout controls into the page. The toolbar provides them.

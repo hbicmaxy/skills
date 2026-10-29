@@ -19,6 +19,7 @@
  *     onChange: (state) => render(),   // only needed if your prototype doesn't re-render by itself
  *     capture: { variants: ['prototype'] }, // which variants Timelapse screenshots (default: all)
  *     viewports: ['mobile', 'tablet'],     // sizes to offer (default: all); without desktop, opens at the first
+ *     screen: 'screen',                    // for multi-screen apps: the state key saying which screen is showing
  *   });
  *
  * Everything is optional. With no controls, they're generated from the state's keys.
@@ -212,6 +213,10 @@
     .track input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -6px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
     .track input::-moz-range-track { height: 2px; background: transparent; }
     .track input::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+    .tl-state {
+      flex: 0 1 180px; min-width: 0; height: 28px; padding: 0 6px; border: 0; border-radius: 6px;
+      background: var(--bg2); color: var(--ink); text-overflow: ellipsis;
+    }
     .tl-pos { min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; flex: none; }
     .tl-meta { margin-top: 8px; color: var(--muted); display: flex; gap: 4px 10px; flex-wrap: wrap; align-items: baseline; }
     .tl-meta b { color: var(--ink); }
@@ -353,6 +358,7 @@
   const variant = () => cfg.variants?.get?.();
   // remote: the change came from the other copy of the page, so don't echo it back.
   function changed(remote, extra) {
+    tlPinned = null;
     cfg.onChange?.(state());
     if (!FRAME) syncUrl();
     if (!remote) pushToFrame(extra);
@@ -560,19 +566,64 @@
   }
 
   // The name Timelapse gave the state on screen (see exposeStates), or null if it isn't one it captures.
-  function capturedName() {
+  function capturedName(p = currentPreset()) {
     const vs = cfg.variants ? (cfg.capture?.variants || variantKeys) : [null];
     if (cfg.variants && !vs.includes(variant())) return null;
     const prefix = cfg.variants && vs.length > 1 ? `${cfg.variants.options[variant()]} \u00b7 ` : '';
-    if (presets.length) { const p = currentPreset(); return p ? prefix + p.name : null; }
+    if (presets.length) return p ? prefix + p.name : null;
     return cfg.variants ? cfg.variants.options[variant()] : null;
   }
-  // Which row of screenshots to follow: the current state if it was captured, else the first one.
+
+  // The state key that says which screen of an app is showing: config.screen, or a control named
+  // like one. Used to find the nearest preset when you've clicked into a state that isn't one.
+  function screenKey() {
+    if (cfg.screen) return cfg.screen;
+    const names = ['screen', 'page', 'view', 'route', 'tab'];
+    return controls.find((c) => c.key && names.includes(c.key))?.key ?? names.find((k) => k in state()) ?? null;
+  }
+  // The preset closest to the current state: on the same screen if we know what that means, then
+  // the one sharing the most values.
+  function closestPreset() {
+    const s = plain(state()), key = screenKey();
+    let pool = presets.filter((p) => p.values);
+    const full = (p) => ({ ...defaults, ...p.values });
+    if (key) {
+      const sameScreen = pool.filter((p) => same(full(p)[key], s[key]));
+      if (sameScreen.length) pool = sameScreen;
+    }
+    let best = null, bestScore = -1;
+    for (const p of pool) {
+      const f = full(p), score = Object.keys(s).filter((k) => same(f[k], s[k])).length;
+      if (score > bestScore) { best = p; bestScore = score; }
+    }
+    return best;
+  }
+
+  // Which row of screenshots to follow: one picked in the timeline, else the current state if it
+  // was captured, else the closest captured state, else the first one.
+  let tlPinned = null;
   function track() {
     const frames = tl?.frames || [];
+    const captured = (n) => n && frames.some((f) => f.shots.some((s) => s.state === n));
+    if (captured(tlPinned)) return { name: tlPinned, exact: true };
     const want = capturedName();
-    if (want && frames.some((f) => f.shots.some((s) => s.state === want))) return { name: want, exact: true };
+    if (captured(want)) return { name: want, exact: true };
+    const near = presets.length ? capturedName(closestPreset()) : null;
+    if (captured(near)) return { name: near, exact: false, near: true };
     return { name: frames.at(-1)?.shots[0]?.state ?? 'Default', exact: !presets.length && !cfg.variants, wanted: want };
+  }
+  // Every state the history has screenshots of, newest version's order first.
+  function capturedStates() {
+    const names = [];
+    [...(tl?.frames || [])].reverse().forEach((f) => f.shots.forEach((s) => { if (!names.includes(s.state)) names.push(s.state); }));
+    return names;
+  }
+  function pickState(name) {
+    stopPlay();
+    const p = presets.find((x) => capturedName(x) === name);
+    tlPinned = null;
+    if (p) applyPreset(p); // the prototype moves there too, so the timeline follows it
+    else { tlPinned = name; tlStruct = ''; updateTimeline(); }
   }
   const shotAt = (i, name) => tl.frames[i]?.shots.find((s) => s.state === name) || null;
   function changedAt(i, name) {
@@ -666,6 +717,8 @@
         range,
         play: h('button', { class: 'play', title: 'Play (Space)', 'aria-label': 'Play or pause', html: playTimer ? ICONS.pause : ICONS.play, onclick: togglePlay }),
         pos: h('span', { class: 'tl-pos' }),
+        picker: h('select', { class: 'tl-state', 'aria-label': 'State to show', title: 'State to show', onchange: (e) => pickState(e.target.value) },
+          capturedStates().map((n) => h('option', { value: n }, n))),
         speed: h('button', { title: 'Playback speed', onclick: () => { speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]; if (playTimer) { stopPlay(); togglePlay(); } updateTimeline(); } }),
         meta: h('div', { class: 'tl-meta' }),
         note: h('div', { class: 'tl-note' }),
@@ -680,6 +733,7 @@
               h('span', { class: 'tick live', style: 'left:100%' })),
             range),
           tlEls.pos,
+          tlEls.picker,
           tlEls.speed,
           h('button', {
             class: changesOnly ? 'on' : '', title: 'When playing, skip frames where this state looks the same',
@@ -695,6 +749,8 @@
     tlEls.range.value = pos;
     tlEls.pos.textContent = live ? 'Live' : `${pos + 1} / ${n}`;
     tlEls.speed.textContent = `${speed}\u00d7`;
+    if (tlEls.picker.value !== t.name) tlEls.picker.value = t.name;
+    tlEls.picker.style.display = capturedStates().length > 1 ? '' : 'none';
     tlView.classList.toggle('on', !live);
 
     if (live) {
@@ -719,7 +775,8 @@
     ];
     if (f.stat) meta.push(h('span', {}, h('span', { class: 'add' }, `+${f.stat.added}`), ' ', h('span', { class: 'rem' }, `\u2212${f.stat.removed}`)));
     if (shot) meta.push(h('span', {}, shot.state === 'Default' ? '' : `${shot.state}${changedAt(pos, shot.state) ? ' \u00b7 changed' : ' \u00b7 unchanged'}`));
-    if (!t.exact && t.wanted !== undefined) {
+    if (t.near) meta.push(h('span', {}, 'closest captured state to what\u2019s on screen'));
+    else if (!t.exact && t.wanted !== undefined) {
       meta.push(h('span', { class: 'warn' }, t.wanted ? `\u201c${t.wanted}\u201d isn\u2019t in the history yet` : 'This state isn\u2019t captured'));
     }
     const shotW = f.viewport?.width ?? 1440, nowW = (rotated ? sizeOf(viewport).h : sizeOf(viewport).w);

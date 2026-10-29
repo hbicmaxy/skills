@@ -1,6 +1,6 @@
 {
   "name": "protokit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A toolbar for HTML prototypes (states, devices, timeline, comments), automatic version history with Timelapse, and one-link handovers for PRs.",
   "author": {
     "name": "Maxy"
