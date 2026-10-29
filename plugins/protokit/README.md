@@ -40,7 +40,7 @@ Once a prototype describes itself, the toolbar gives you:
 - **Controls**: the individual settings behind each state (dropdowns, switches, numbers), plus read-only **derived** values.
 - **Viewport**: desktop, tablet (768 × 1024) or mobile (390 × 844), with a rotate button. A prototype can offer only some of these. A mobile app might offer just mobile and tablet; it then opens on a phone, and its history is captured at phone size. Tablet and mobile show the prototype in a device frame, scaled down to fit your window when needed. Everything stays in sync both ways: presets and controls reach the device, and anything you click inside the device updates the toolbar.
 - **Links to any state**: the address bar always describes what you're looking at (`?variant=prototype&state=past-due&viewport=mobile`, or `&custom=…` for hand-tuned states). **Copy link to this state** puts it on your clipboard for a PR, Slack or a handover note.
-- **Timeline**: the prototype's history, Procreate-timelapse style. A scrubber has a dot for each saved version (blue where the state you're on changed). Press play to watch it evolve, or drag back to any moment. The page shows that moment's screenshot of the state you're on, and switching presets while scrubbing shows that state's history instead. If you've clicked into a state that isn't a preset, it follows the closest preset on the same screen. A dropdown in the timeline lists every captured state, so you can jump to any of them. The far right end is **Live**, the prototype as it is now. **Open this version** opens that moment as a working prototype, in the same state.
+- **Timeline**: the prototype's history, Procreate-timelapse style. A scrubber has a dot for each saved version: a large blue dot where the state you're on changed, a small grey ring where it looked the same. The drawer says how many versions changed it (e.g. *Stash changed in 2 of 4 versions*), and so does each state in its dropdown. Press play to watch it evolve, or drag back to any moment. With **Skip unchanged** switched on (the default), play skips versions where the state looked the same. The page shows that moment's screenshot of the state you're on, and switching presets while scrubbing shows that state's history instead. If you've clicked into a state that isn't a preset, it follows the closest preset on the same screen. A dropdown in the timeline lists every captured state, so you can jump to any of them. The far right end is **Live**, the prototype as it is now. **Open this version** opens that moment as a working prototype, in the same state.
 - **Timelapse states**: if [Timelapse](#timelapse) is on, every preset gets screenshotted after each Claude turn, with no extra setup. That's where the timeline's history comes from.
 - **Comments**: Figma-style pins for design notes and handover. See [Comments](#comments) below.
 
@@ -58,6 +58,7 @@ Hover over any toolbar button to see its name and shortcut.
 | `R` | Rotate the tablet or phone |
 | `T` | Open or close the timeline |
 | `←` / `→` | Step back / forward through the timeline (while it's open) |
+| `Shift` `←` / `→` | Jump to the previous / next version where the state changed |
 | `Space` | Play / pause the timeline (while it's open) |
 | `C` | Comment mode on / off |
 | `H` | Open the handover card |
@@ -70,13 +71,13 @@ Hover over any toolbar button to see its name and shortcut.
 Claude does this for you (see the `prototype` skill). Loading the script on its own gives you the toolbar with the viewport switcher, timeline and comments:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.1/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.2/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 For variants, presets and controls, describe the prototype once its state exists, before the page finishes loading. [toolbar/example.html](toolbar/example.html) is a small working example in plain HTML.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.1/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.2/plugins/protokit/toolbar/protokit.js"></script>
 <script>
   Protokit.init({
     title: 'Project list',

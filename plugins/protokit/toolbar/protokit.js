@@ -205,16 +205,18 @@
     .track { position: relative; flex: 1; height: 28px; min-width: 120px; }
     .ticks { position: absolute; left: 7px; right: 7px; top: 50%; height: 0; pointer-events: none; }
     .ticks::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: var(--bg3); border-radius: 1px; }
-    .tick { position: absolute; top: -2px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #5a5a5a; }
-    .tick.ch { background: var(--accent); }
+    .tick { position: absolute; top: -3px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 1.5px #6a6a6a; }
+    .tick.ch { top: -5px; width: 10px; height: 10px; margin-left: -5px; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
     .tick.live { top: -6px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
     .track input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
     .track input::-webkit-slider-runnable-track { height: 2px; background: transparent; }
     .track input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -6px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
     .track input::-moz-range-track { height: 2px; background: transparent; }
     .track input::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+    .tl .skip { display: flex; align-items: center; gap: 6px; flex: none; color: var(--muted); white-space: nowrap; cursor: pointer; padding: 0 4px; }
+    .tl .skip:hover { color: var(--ink); }
     .tl-state {
-      flex: 0 1 180px; min-width: 0; height: 28px; padding: 0 6px; border: 0; border-radius: 6px;
+      flex: 0 1 210px; min-width: 0; height: 28px; padding: 0 6px; border: 0; border-radius: 6px;
       background: var(--bg2); color: var(--ink); text-overflow: ellipsis;
     }
     .tl-pos { min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; flex: none; }
@@ -670,6 +672,14 @@
     pos = Math.max(0, Math.min(n, i));
     updateTimeline();
   }
+  // How many versions changed how a state looks.
+  const changeCount = (name) => (tl?.frames || []).filter((_, i) => changedAt(i, name)).length;
+  // Shift+arrows: the previous or next version where the followed state changed (or Live).
+  function jumpChange(dir) {
+    const n = tl?.frames.length ?? 0, name = track().name;
+    for (let j = pos + dir; j >= 0 && j < n; j += dir) if (changedAt(j, name)) return go(j);
+    if (dir > 0) go(n);
+  }
   function nextIndex(from) {
     const n = tl.frames.length, name = track().name;
     for (let j = from + 1; j < n; j++) if (!changesOnly || changedAt(j, name)) return j;
@@ -697,7 +707,7 @@
   function updateTimeline() {
     if (!tlOpen) return;
     const frames = tl?.frames || [], n = frames.length, t = track();
-    const struct = [n, t.name, changesOnly].join('|');
+    const struct = [n, t.name].join('|');
     if (struct !== tlStruct) {
       tlStruct = struct;
       if (!n) {
@@ -717,8 +727,8 @@
         range,
         play: h('button', { class: 'play', title: 'Play (Space)', 'aria-label': 'Play or pause', html: playTimer ? ICONS.pause : ICONS.play, onclick: togglePlay }),
         pos: h('span', { class: 'tl-pos' }),
-        picker: h('select', { class: 'tl-state', 'aria-label': 'State to show', title: 'State to show', onchange: (e) => pickState(e.target.value) },
-          capturedStates().map((n) => h('option', { value: n }, n))),
+        picker: h('select', { class: 'tl-state', 'aria-label': 'State to show', title: 'State to show (versions where it changed)', onchange: (e) => pickState(e.target.value) },
+          capturedStates().map((s) => h('option', { value: s }, `${s} (${changeCount(s)} of ${n})`))),
         speed: h('button', { title: 'Playback speed', onclick: () => { speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]; if (playTimer) { stopPlay(); togglePlay(); } updateTimeline(); } }),
         meta: h('div', { class: 'tl-meta' }),
         note: h('div', { class: 'tl-note' }),
@@ -735,10 +745,12 @@
           tlEls.pos,
           tlEls.picker,
           tlEls.speed,
-          h('button', {
-            class: changesOnly ? 'on' : '', title: 'When playing, skip frames where this state looks the same',
-            onclick: () => { changesOnly = !changesOnly; pref.set('changesOnly', changesOnly); tlStruct = ''; updateTimeline(); },
-          }, 'Changes only'),
+          h('label', { class: 'skip', title: 'When playing, skip versions where this state looks the same' },
+            h('span', { class: 'switch' },
+              h('input', { type: 'checkbox', checked: changesOnly, 'aria-label': 'Skip unchanged versions when playing',
+                onchange: (e) => { changesOnly = e.target.checked; pref.set('changesOnly', changesOnly); } }),
+              h('span')),
+            'Skip unchanged'),
           h('button', { title: 'Close (T)', 'aria-label': 'Close timeline', onclick: () => setTimeline(false) }, '\u2715')),
         tlEls.meta, tlEls.note, tlEls.links,
       );
@@ -754,7 +766,8 @@
     tlView.classList.toggle('on', !live);
 
     if (live) {
-      tlEls.meta.replaceChildren(h('b', {}, 'Live'), h('span', {}, 'the prototype as it is now'));
+      tlEls.meta.replaceChildren(...[h('b', {}, 'Live'), h('span', {}, 'the prototype as it is now'),
+        t.name !== 'Default' ? h('span', {}, `${t.name} changed in ${changeCount(t.name)} of ${n} versions`) : null].filter(Boolean));
       tlEls.note.replaceChildren();
       tlEls.links.replaceChildren(h('a', { href: new URL('index.html', historyBase).href, target: '_blank' }, 'All frames \u2197'));
       return;
@@ -775,6 +788,7 @@
     ];
     if (f.stat) meta.push(h('span', {}, h('span', { class: 'add' }, `+${f.stat.added}`), ' ', h('span', { class: 'rem' }, `\u2212${f.stat.removed}`)));
     if (shot) meta.push(h('span', {}, shot.state === 'Default' ? '' : `${shot.state}${changedAt(pos, shot.state) ? ' \u00b7 changed' : ' \u00b7 unchanged'}`));
+    if (shot && shot.state !== 'Default') meta.push(h('span', {}, `changed in ${changeCount(shot.state)} of ${n} versions`));
     if (t.near) meta.push(h('span', {}, 'closest captured state to what\u2019s on screen'));
     else if (!t.exact && t.wanted !== undefined) {
       meta.push(h('span', { class: 'warn' }, t.wanted ? `\u201c${t.wanted}\u201d isn\u2019t in the history yet` : 'This state isn\u2019t captured'));
@@ -1547,6 +1561,9 @@
   function onKey(e) {
     hideTip();
     if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (tlOpen && e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault(); stopPlay(); return jumpChange(e.key === 'ArrowLeft' ? -1 : 1);
+    }
     if (handleKey(e.key)) e.preventDefault();
   }
 
