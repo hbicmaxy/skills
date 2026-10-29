@@ -71,13 +71,13 @@ Hover over any toolbar button to see its name and shortcut.
 Claude does this for you (see the `prototype` skill). Loading the script on its own gives you the toolbar with the viewport switcher, timeline and comments:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.3/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.4/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 For variants, presets and controls, describe the prototype once its state exists, before the page finishes loading. [toolbar/example.html](toolbar/example.html) is a small working example in plain HTML.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.3/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.4/plugins/protokit/toolbar/protokit.js"></script>
 <script>
   Protokit.init({
     title: 'Project list',
@@ -210,7 +210,7 @@ The plugin adds three Claude Code hooks, which call `timelapse/timelapse.mjs`:
 | `PostToolUse` (Write/Edit) | `edit` | Notes which prototype was touched. An `.html` edit counts directly; a `.css`/`.js` edit maps to the HTML file beside it that uses it, or else the nearest `index.html` above it |
 | `Stop` | `stop` | Checks every prototype in the session's folder that already has history, plus any prototype file changed during the turn (however it was changed). Each one that changed gets screenshotted and saved as a frame |
 
-A prototype counts as changed when its HTML changes, or any CSS, JS or image it loads from its own folder (including what that CSS loads). Files outside its folder, like Protokit or a repo's fonts, don't count.
+A prototype counts as changed when its HTML changes, or any CSS, JS or image it loads from its own folder (including what that CSS loads). Files outside its folder, like Protokit or a repo's fonts, don't count, and neither does the line that loads the toolbar, so upgrading Protokit never adds a version.
 
 Changes made during the turn are captioned with that turn's prompt, whether Claude made them with its editing tools or a shell command. Changes from before the turn, e.g. by hand, are captioned "Edited outside Claude".
 

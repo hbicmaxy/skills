@@ -93,8 +93,12 @@ const htmlRefs = (html) => [
   ...cssRefs(html),
 ];
 const cssRefs = (css) => [...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]);
-function contentHash(file, src) {
-  const dir = path.dirname(file), h = crypto.createHash('sha1').update(src), seen = new Set();
+// The line loading the Protokit toolbar isn't part of the design either: upgrading the toolbar
+// shouldn't add a version.
+const TOOLBAR_TAG = /<script\b[^>]*\bsrc\s*=\s*["'](?:[^"']*\/)?protokit\.js(?:[?#][^"']*)?["'][^>]*>\s*<\/script>/gi;
+function contentHash(file, src, { ignoreToolbar = true } = {}) {
+  const dir = path.dirname(file), seen = new Set();
+  const h = crypto.createHash('sha1').update(ignoreToolbar ? src.replace(TOOLBAR_TAG, '<script data-protokit-toolbar></script>') : src);
   const add = (ref, from) => {
     if (!isLocalRef(ref)) return;
     const p = path.resolve(from, decodeURIComponent(ref.split(/[?#]/)[0]));
@@ -173,7 +177,9 @@ async function captureFrame(file, notes = []) {
   const last = manifest.frames.at(-1);
   if (last?.hash === hash) { log('unchanged', file); return null; }
   // Versions saved before assets counted were hashed from the HTML alone: upgrade, don't re-capture.
-  if (last && last.hash === sha1(src)) {
+  // Earlier versions hashed the HTML alone, or the toolbar line too: if one of those still matches,
+  // nothing has changed since; upgrade the stored hash instead of capturing.
+  if (last && (last.hash === sha1(src) || last.hash === contentHash(file, src, { ignoreToolbar: false }))) {
     last.hash = hash;
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
     fs.writeFileSync(path.join(base, 'frames.js'), `window.TIMELAPSE = ${JSON.stringify(manifest)};\n`);
