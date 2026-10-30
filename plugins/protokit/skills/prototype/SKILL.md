@@ -31,7 +31,7 @@ Prefer one folder per prototype. A prototype can be a single HTML file or HTML p
 Add this line before the prototype's own scripts:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.5/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.6/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 Keep the version pinned. To move a prototype to a newer release, change the tag (`protokit--vX.Y.Z`).

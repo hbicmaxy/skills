@@ -297,15 +297,33 @@ async function screenshots(url, framesDir, id) {
       expression, awaitPromise: true, returnByValue: true,
     }, sessionId)).result?.value;
     // The page size: desktop unless the prototype asks for another (window.timelapse.viewport).
-    const size = { width: VIEWPORT.width, height: VIEWPORT.height };
+    const size = { width: VIEWPORT.width, height: VIEWPORT.height, mobile: false };
     // Full page, capped so a runaway layout doesn't produce a giant image.
+    const metrics = (height) => send('Emulation.setDeviceMetricsOverride', {
+      width: size.width, height, deviceScaleFactor: VIEWPORT.scale, mobile: size.mobile,
+    }, sessionId);
+    // Something pinned to the bottom of the screen (a tab bar, a sticky footer)?
+    const pinnedToBottom = () => evaluate(`[...document.querySelectorAll('body *')].some((el) => {
+      const p = getComputedStyle(el).position;
+      if (p !== 'fixed' && p !== 'sticky') return false;
+      const r = el.getBoundingClientRect();
+      return r.height > 0 && r.bottom >= innerHeight - 2 && r.top > innerHeight / 2;
+    })`);
     const shoot = async (file) => {
       const height = await evaluate(
         `Math.min(${MAX_HEIGHT}, Math.max(${size.height}, document.documentElement.scrollHeight, document.body?.scrollHeight || 0))`);
+      // A full-page capture draws pinned elements where the screen ends, i.e. mid-page. Making the
+      // screen as tall as the page puts them at the bottom, where they belong.
+      const stretch = height > size.height && await pinnedToBottom();
+      if (stretch) {
+        await metrics(height);
+        await evaluate('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))');
+      }
       const { data } = await send('Page.captureScreenshot', {
         format: 'webp', quality: 88, captureBeyondViewport: true,
         clip: { x: 0, y: 0, width: size.width, height, scale: 1 },
       }, sessionId);
+      if (stretch) await metrics(size.height);
       const buf = Buffer.from(data, 'base64');
       fs.writeFileSync(path.join(framesDir, file), buf);
       return { file: `frames/${file}`, hash: sha1(buf) };
@@ -320,7 +338,7 @@ async function screenshots(url, framesDir, id) {
 
     const wanted = await evaluate('(window.timelapse && window.timelapse.viewport) || null').catch(() => null);
     if (wanted?.width && wanted?.height) {
-      Object.assign(size, { width: Math.round(wanted.width), height: Math.round(wanted.height) });
+      Object.assign(size, { width: Math.round(wanted.width), height: Math.round(wanted.height), mobile: !!wanted.mobile });
       await send('Emulation.setDeviceMetricsOverride', {
         width: size.width, height: size.height, deviceScaleFactor: VIEWPORT.scale, mobile: !!wanted.mobile,
       }, sessionId);

@@ -71,13 +71,13 @@ Hover over any toolbar button to see its name and shortcut.
 Claude does this for you (see the `prototype` skill). Loading the script on its own gives you the toolbar with the viewport switcher, timeline and comments:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.5/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.6/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 For variants, presets and controls, describe the prototype once its state exists, before the page finishes loading. [toolbar/example.html](toolbar/example.html) is a small working example in plain HTML.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.5/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.6/plugins/protokit/toolbar/protokit.js"></script>
 <script>
   Protokit.init({
     title: 'Project list',
@@ -250,6 +250,7 @@ Errors go to `$TMPDIR/claude-timelapse/log.txt`. Capture never blocks or fails a
 ### Limits
 
 - One screenshot per state, of the page after it loads and the preset is applied. Anything behind a click, hover or scroll (menus, dialogs, tooltips) isn't captured unless a preset opens it.
+- Screenshots are of the full page, up to 2,400px tall. Anything pinned to the bottom of the screen (a tab bar, a sticky footer) is drawn at the bottom of the page.
 - Hand edits are only picked up once the prototype already has history, and only when a Claude turn ends in that folder.
 - Snapshots copy the HTML file only. Relative CSS/JS/images point back to the current files, not historic copies.
 - Only HTML prototypes are recorded, not native apps.
