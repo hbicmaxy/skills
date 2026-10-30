@@ -71,13 +71,13 @@ Hover over any toolbar button to see its name and shortcut.
 Claude does this for you (see the `prototype` skill). Loading the script on its own gives you the toolbar with the viewport switcher, timeline and comments:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.6/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.7/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 For variants, presets and controls, describe the prototype once its state exists, before the page finishes loading. [toolbar/example.html](toolbar/example.html) is a small working example in plain HTML.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.6/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.7/plugins/protokit/toolbar/protokit.js"></script>
 <script>
   Protokit.init({
     title: 'Project list',
@@ -232,7 +232,8 @@ Each `frames/NNNN.html` is the full source at that moment, so **Open live** give
 
 ### The canvas
 
-- Frames are laid out left to right in one row per day, each captioned with its prompt and line changes.
+- The All Frames page shows every version left to right, with one row per state (or per day, for a prototype without states). Each version is captioned with its summary and line changes, and states that didn't change are faded.
+- Each screenshot is shown whole, as tall as the page, so changes below the fold are visible. A row is as tall as its tallest screenshot.
 - Scroll to pan, ⌘-scroll or pinch to zoom, ⇧1 to fit, ←/→ to step through frames.
 - Double-click a frame (or press Enter) to inspect it. In the inspector, **C** compares with the previous frame using a draggable divider, and **O** opens the frame live.
 - An open canvas picks up new frames every few seconds while you keep working.

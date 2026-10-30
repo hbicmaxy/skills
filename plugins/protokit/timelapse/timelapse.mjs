@@ -326,7 +326,8 @@ async function screenshots(url, framesDir, id) {
       if (stretch) await metrics(size.height);
       const buf = Buffer.from(data, 'base64');
       fs.writeFileSync(path.join(framesDir, file), buf);
-      return { file: `frames/${file}`, hash: sha1(buf) };
+      // w/h: the screenshot's size on screen (it's taken at 2x), so viewers can lay it out uncropped.
+      return { file: `frames/${file}`, hash: sha1(buf), w: size.width, h: height };
     };
 
     const names = await evaluate(`(async () => {

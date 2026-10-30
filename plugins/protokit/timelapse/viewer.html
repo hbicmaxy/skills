@@ -74,7 +74,7 @@
   .day-label { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
   .day-label small { font-size: 18px; font-weight: 400; color: var(--muted); margin-left: 10px; }
   .state-label {
-    width: 220px; height: var(--cell-h, 300px); display: flex; align-items: center; justify-content: flex-end; text-align: right;
+    width: 220px; height: var(--cell-h, 300px); display: flex; align-items: flex-start; padding-top: 24px; justify-content: flex-end; text-align: right;
     font-size: 20px; font-weight: 600; line-height: 1.25; color: var(--ink);
   }
   .col-head { width: var(--cell-w, 480px); }
@@ -269,6 +269,7 @@
     const ratio = vp.width / vp.height;
     if (ratio < 1) { W = 240; H = Math.round(W / ratio); } else { W = 480; H = 300; }
     FRAME_H = 22 + H + 100;
+    rowHeights();
     const root = document.documentElement.style;
     root.setProperty('--cell-w', `${W}px`);
     root.setProperty('--cell-h', `${H}px`);
@@ -306,10 +307,34 @@
 
   const place = (node, x, y) => { node.style.transform = `translate(${x}px, ${y}px)`; world.append(node); return node; };
 
+  // Screenshots are shown whole, never cropped to one screen: a cell is as tall as its screenshot
+  // at the column's width, and a row as tall as its tallest cell. Sizes come from the history, or
+  // are measured from the image for versions saved before sizes were recorded.
+  const measured = new Map();
+  let rowH = [], rowY = [];
+  const sizeOf = (shot) => (shot?.w && shot?.h ? { w: shot.w, h: shot.h } : measured.get(shot?.file) || null);
+  const cellH = (f, s) => { const z = sizeOf(shotOf(f, s)); return z ? Math.round((W * z.h) / z.w) : H; };
+  function rowHeights() {
+    rowH = states.map((_, s) => Math.max(H / 2, ...data.frames.map((_, f) => (shotOf(f, s) ? cellH(f, s) : 0))));
+    rowY = [];
+    rowH.reduce((y, h, s) => { rowY[s] = y; return y + h + CELL_GAP; }, HEAD_H);
+  }
+  function measure() {
+    const missing = [];
+    data.frames.forEach((f) => f.shots.forEach((sh) => { if (sh.file && !sizeOf(sh)) missing.push(sh.file); }));
+    return Promise.all([...new Set(missing)].map((file) => new Promise((done) => {
+      const img = new Image();
+      img.onload = () => { measured.set(file, { w: img.naturalWidth / 2, h: img.naturalHeight / 2 }); done(); };
+      img.onerror = done;
+      img.src = file;
+    })));
+  }
+
   function cellEl(f, s) {
     const shot = shotOf(f, s);
     const box = el('div', 'cell');
     box.dataset.f = f; box.dataset.s = s;
+    box.style.height = `${cellH(f, s)}px`;
     if (shot?.file) {
       const img = el('img'); img.src = shot.file; img.alt = `Frame ${data.frames[f].n}, ${states[s]}`; img.decoding = 'async';
       box.append(img);
@@ -331,22 +356,26 @@
       const label = el('div', 'day-label', fmtDay(frames[day.items[0]].at));
       label.append(el('small', null, `${day.items.length} frame${day.items.length === 1 ? '' : 's'}`));
       place(label, 0, y);
+      const tallest = Math.max(...day.items.map((i) => cellH(i, 0)));
       day.items.forEach((i, col) => {
         const f = frames[i], x = col * (W + GAP_X), fy = y + DAY_H;
-        cells.set(`${i}:0`, { x, y: fy + 22 });
+        cells.set(`${i}:0`, { x, y: fy + 22, h: cellH(i, 0) });
         const card = el('div', 'frame');
         const lab = el('div', 'frame-label');
         lab.append(el('b', null, `#${f.n}`), el('span', null, fmtTime(f.at)), statEl(f.stat));
         card.append(lab, cellEl(i, 0), noteEl(f));
         place(card, x, fy);
       });
-      y += DAY_H + FRAME_H + ROW_GAP;
+      y += DAY_H + 22 + tallest + 100 + ROW_GAP;
     });
   }
 
   function renderGrid() {
     const frames = data.frames;
-    states.forEach((name, s) => place(el('div', 'state-label', name), 0, HEAD_H + s * (H + CELL_GAP)));
+    states.forEach((name, s) => {
+      const label = place(el('div', 'state-label', name), 0, rowY[s]);
+      label.style.height = `${rowH[s]}px`;
+    });
     frames.forEach((f, i) => {
       const x = LABEL_W + i * (W + COL_GAP);
       const head = el('div', 'col-head');
@@ -359,8 +388,8 @@
       head.append(lab, noteEl(f));
       place(head, x, 0);
       states.forEach((_, s) => {
-        const y = HEAD_H + s * (H + CELL_GAP);
-        cells.set(`${i}:${s}`, { x, y });
+        const y = rowY[s];
+        cells.set(`${i}:${s}`, { x, y, h: cellH(i, s) });
         place(cellEl(i, s), x, y);
       });
     });
@@ -369,9 +398,9 @@
   function bounds() {
     const n = data.frames.length;
     if (!n) return { x: 0, y: 0, w: 1, h: 1 };
-    if (grid) return { x: 0, y: 0, w: LABEL_W + n * (W + COL_GAP) - COL_GAP, h: HEAD_H + states.length * (H + CELL_GAP) - CELL_GAP };
+    if (grid) return { x: 0, y: 0, w: LABEL_W + n * (W + COL_GAP) - COL_GAP, h: rowY.at(-1) + rowH.at(-1) };
     const pts = [...cells.values()];
-    return { x: 0, y: 0, w: Math.max(...pts.map((p) => p.x)) + W, h: Math.max(...pts.map((p) => p.y)) + H + 100 };
+    return { x: 0, y: 0, w: Math.max(...pts.map((p) => p.x)) + W, h: Math.max(...pts.map((p) => p.y + p.h)) + 100 };
   }
 
   // ---------- view transform ----------
@@ -404,7 +433,7 @@
     const p = cells.get(`${f}:${s}`); if (!p) return;
     const vw = viewport.clientWidth, vh = viewport.clientHeight;
     view.x = vw / 2 - (p.x + W / 2) * view.k;
-    view.y = vh / 2 - (p.y + H / 2) * view.k;
+    view.y = vh / 2 - (p.y + Math.min(p.h ?? H, H) / 2) * view.k;
     apply(true);
   }
 
@@ -548,8 +577,8 @@
       const next = window.TIMELAPSE;
       if (next && next.frames.length !== data.frames.length) {
         const wasEmpty = !data.frames.length;
-        load(next); render();
-        if (wasEmpty) fit(false);
+        load(next);
+        measure().then(() => { rowHeights(); render(); if (wasEmpty) fit(false); });
       }
     };
     document.head.append(s);
@@ -558,6 +587,8 @@
   load(window.TIMELAPSE);
   render();
   if (data.frames.length) fit(false); else apply();
+  // Older versions don't record their screenshots' sizes: lay out again once they're measured.
+  measure().then(() => { if (!measured.size) return; rowHeights(); render(); fit(false); });
   window.addEventListener('resize', () => (!fitted && data.frames.length ? fit(false) : apply()));
 })();
 </script>
