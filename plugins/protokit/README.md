@@ -71,13 +71,13 @@ Hover over any toolbar button to see its name and shortcut.
 Claude does this for you (see the `prototype` skill). Loading the script on its own gives you the toolbar with the viewport switcher, timeline and comments:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.7/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.8/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 For variants, presets and controls, describe the prototype once its state exists, before the page finishes loading. [toolbar/example.html](toolbar/example.html) is a small working example in plain HTML.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.7/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.8/plugins/protokit/toolbar/protokit.js"></script>
 <script>
   Protokit.init({
     title: 'Project list',
@@ -143,6 +143,8 @@ Comments are saved in the browser as you go, so nothing is lost on reload. The p
 Once saved, comments are part of the prototype, so they travel with it to devs and PRs, and show up in Timelapse history. If Claude adds or changes comments in the file while you have unsaved ones, both sets are kept.
 
 ### For Claude: the comment format
+
+Only add, change or delete comments when the user asks you to, or pastes comments to save. Comments are the designer's notes; never seed a prototype with your own.
 
 Comments live in a JSON block in the prototype, just before `</body>`:
 

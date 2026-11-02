@@ -15,7 +15,7 @@ Protokit is a toolbar that sits on any HTML prototype. Once a prototype describe
 
 This plugin's Timelapse hooks record a version after every turn that changes a prototype.
 
-The full reference is in `../../README.md` (relative to this skill). Read its "Adding it to a prototype" and "Comments" sections before writing a `Protokit.init` call for the first time.
+The full reference is in `../../README.md` (relative to this skill). Read its "Adding it to a prototype" section before writing a `Protokit.init` call for the first time, and its "Comments" section only when the user asks you to save or add comments.
 
 ## Where prototypes live
 
@@ -31,7 +31,7 @@ Prefer one folder per prototype. A prototype can be a single HTML file or HTML p
 Add this line before the prototype's own scripts:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.7/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.8/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 Keep the version pinned. To move a prototype to a newer release, change the tag (`protokit--vX.Y.Z`).
@@ -59,6 +59,8 @@ The timeline and its All Frames page caption each version with a one-line summar
 **In every turn where you change a prototype**, write one sentence to `.timelapse/<file name without .html>/next-summary.txt` inside the prototype's folder (create the folders if needed). For example, `~/Documents/Prototypes/stash/.timelapse/index/next-summary.txt` for `stash/index.html`. Overwrite whatever is there. Describe the change as a reviewer would see it, e.g. *Stash list now groups hobbies by where you can do them*. Don't restate the prompt. If nothing visible changed, say what did (e.g. *Fixed the results order when two hobbies tie; no visual change*).
 
 ## Comments
+
+Comments are the designer's own notes. **Never add, change or delete comments on your own initiative**, including when building a prototype, adding states, or explaining your work. Put your explanations in your reply instead. Only touch comments in the two cases below.
 
 Comments live in `<script type="application/json" id="protokit-comments">` just before `</body>`. The format is in the README. Categories are `note`, `logic`, `question` and `reference`.
 
