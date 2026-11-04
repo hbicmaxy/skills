@@ -31,7 +31,7 @@ Prefer one folder per prototype. A prototype can be a single HTML file or HTML p
 Add this line before the prototype's own scripts:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.8/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.9/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 Keep the version pinned. To move a prototype to a newer release, change the tag (`protokit--vX.Y.Z`).
@@ -48,9 +48,19 @@ Call `Protokit.init({...})` once the prototype's state exists and before the pag
 - **`derived`**: read-only values worth checking (e.g. which layout the logic picked).
 - **`variants`**: only when there is an existing page to compare against. Label them `{ current: 'Current page', prototype: 'Prototype' }`, and set `capture: { variants: ['prototype'] }` so Timelapse records the new design only. With no existing page, leave `variants` out and no switch appears.
 - **`screen`**: for an app with several screens, the state key that says which screen is showing (e.g. `'screen'`). Give every screen at least one preset, so its history is captured. The timeline uses `screen` to follow the right one when the user has clicked into a state that isn't a preset.
-- **`viewports`**: the sizes to offer, from `desktop`, `tablet` and `mobile`. Leave it out for a responsive web page. For a mobile app, use `['mobile', 'tablet']`. It then opens on a phone and is recorded at phone size. Ask the user if it's unclear.
+- **`viewports`**: the sizes to offer, from `desktop`, `tablet` and `mobile`. Leave it out for a responsive web page. For a mobile app, use `['mobile', 'tablet']`. It then opens on a phone and is recorded at phone size, and on a real phone it shows full screen without the toolbar (`?toolbar` brings it back, `?bare` hides it anywhere). Don't add your own bare mode. Make the page work at the phone's own width, with `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">` and safe-area padding. Ask the user if it's unclear.
 
 Don't build your own state-switching panel or layout controls into the page. The toolbar provides them.
+
+## Testing on the user's phone
+
+When the user wants to try a prototype on their phone:
+
+1. Serve the prototype's folder on every address, in the background, so the phone can reach it: `python3 -m http.server <port> --bind 0.0.0.0` (pick a free port; reuse a server that's already running for this folder instead of starting another).
+2. Find the Mac's Wi-Fi address with `ipconfig getifaddr en0` and give the user `http://<that address>:<port>/<file>.html`. The phone needs to be on the same Wi-Fi.
+3. **Do your own checking at `http://localhost:<port>/<file>.html`**, never at the Wi-Fi address. It's the same server and the same files, but the browser pane treats a `192.168.x.x` address as an outside site and asks the user to approve every step.
+
+A mobile app prototype shows full screen on the phone without the toolbar (see `viewports` above), so don't add `?bare` to the link.
 
 ## Summarise every change
 

@@ -39,6 +39,7 @@ Once a prototype describes itself, the toolbar gives you:
 - **Presets**: named states you can jump between. Use `[` and `]` to step through them.
 - **Controls**: the individual settings behind each state (dropdowns, switches, numbers), plus read-only **derived** values.
 - **Viewport**: desktop, tablet (768 × 1024) or mobile (390 × 844), with a rotate button. A prototype can offer only some of these. A mobile app might offer just mobile and tablet; it then opens on a phone, and its history is captured at phone size. Tablet and mobile show the prototype in a device frame, scaled down to fit your window when needed. Everything stays in sync both ways: presets and controls reach the device, and anything you click inside the device updates the toolbar.
+- **Testing on your phone**: a mobile app (one that opens at mobile) shows on its own on a real phone, full screen and without the toolbar, so you can try it like the app. Links to a state still work (`?state=past-due`). Add `?toolbar` to the address to keep the toolbar on a phone, or `?bare` to hide it on any device. To open it on your phone, ask Claude to *"put this on my phone"*: it serves the folder on your Wi-Fi and gives you the link, while checking the page itself at `localhost` so you don't get approval prompts.
 - **Links to any state**: the address bar always describes what you're looking at (`?variant=prototype&state=past-due&viewport=mobile`, or `&custom=…` for hand-tuned states). **Copy link to this state** puts it on your clipboard for a PR, Slack or a handover note.
 - **Timeline**: the prototype's history, Procreate-timelapse style. A scrubber has a dot for each saved version: a large blue dot where the state you're on changed, a small grey ring where it looked the same. The drawer says how many versions changed it (e.g. *Stash changed in 2 of 4 versions*), and so does each state in its dropdown. Press play to watch it evolve, or drag back to any moment. With **Skip unchanged** switched on (the default), play skips versions where the state looked the same. The page shows that moment's screenshot of the state you're on, and switching presets while scrubbing shows that state's history instead. If you've clicked into a state that isn't a preset, it follows the closest preset on the same screen. A dropdown in the timeline lists every captured state, so you can jump to any of them. It opens on the latest version; close it (`T`) to get back to the working prototype. Each version is captioned with a one-line summary of what changed, never the prompt behind it. **Open this version** opens that moment as a working prototype, in the same state.
 - **Timelapse states**: if [Timelapse](#timelapse) is on, every preset gets screenshotted after each Claude turn, with no extra setup. That's where the timeline's history comes from.
@@ -71,13 +72,13 @@ Hover over any toolbar button to see its name and shortcut.
 Claude does this for you (see the `prototype` skill). Loading the script on its own gives you the toolbar with the viewport switcher, timeline and comments:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.8/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.9/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 For variants, presets and controls, describe the prototype once its state exists, before the page finishes loading. [toolbar/example.html](toolbar/example.html) is a small working example in plain HTML.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.8/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.9/plugins/protokit/toolbar/protokit.js"></script>
 <script>
   Protokit.init({
     title: 'Project list',
@@ -112,7 +113,7 @@ Everything is optional:
 - Leave out `controls` and they're generated from the state's keys.
 - Leave out `variants` when there's nothing to compare against; with one variant, the switch is hidden too.
 - `screen` names the state key that says which screen of an app is showing. Without it, a control named `screen`, `page`, `view`, `route` or `tab` is used. Give every screen at least one preset so its history is captured.
-- `viewports` lists the sizes to offer, from `desktop`, `tablet` and `mobile`. With desktop listed, it opens at desktop; without it, it opens at the first size listed. With a single size, the size switch is hidden.
+- `viewports` lists the sizes to offer, from `desktop`, `tablet` and `mobile`. With desktop listed, it opens at desktop; without it, it opens at the first size listed. With a single size, the size switch is hidden. When it opens at mobile, it hides the toolbar on a real phone (see *Testing on your phone*).
 - Leave out `defaults` and the state as it is when `init` runs becomes what **Reset** returns to.
 - A preset can use `apply(state) { … }` instead of `values` when it needs to do more than set values, such as opening a modal.
 

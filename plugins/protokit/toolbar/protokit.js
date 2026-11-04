@@ -24,6 +24,9 @@
  *
  * Everything is optional. With no controls, they're generated from the state's keys.
  *
+ * On a phone, a prototype that opens at mobile shows without the toolbar (add ?toolbar to keep it);
+ * ?bare hides the toolbar anywhere.
+ *
  * Tablet and mobile load the same page again inside a device-sized iframe (a page can't narrow its
  * own window). That copy runs in "frame mode": no toolbar, and its state is mirrored with the
  * toolbar's over postMessage, both ways.
@@ -32,6 +35,13 @@
   if (window.Protokit) return;
 
   const FRAME = new URLSearchParams(location.search).has('pk-frame') && window.parent !== window;
+  // On a real phone, a mobile app prototype (one that opens at mobile) shows on its own, full
+  // screen, so it can be tried like the app. ?bare does the same anywhere; ?toolbar keeps the toolbar.
+  const PHONE = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
+  const bare = () => {
+    const q = new URLSearchParams(location.search);
+    return !q.has('toolbar') && (q.has('bare') || (PHONE && homeSize === 'mobile'));
+  };
   // A handover export (see handover.mjs) is a self-contained copy for reviewers: comments are
   // read-only and the history ships beside it instead of in .timelapse/.
   const meta = (name) => document.querySelector(`meta[name="${name}"]`)?.content;
@@ -1609,6 +1619,7 @@
     const start = () => {
       readUrl();
       if (FRAME) return startFrameMode();
+      if (bare()) return; // ?state= etc. still apply
       build();
       exposeStates();
       // After the comments block (end of the file) has been read.
