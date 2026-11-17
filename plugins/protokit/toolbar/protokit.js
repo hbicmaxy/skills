@@ -400,6 +400,9 @@
     @media (max-width: 640px) {
       .state-btn .k, .seg.variants, .bar .sep.v { display: none; }
     }
+    .bar.flowing .sz, .bar:not(.flowing) .dv { display: none !important; }
+    /* The flow is a map of the states, not one of them, and it has no history to scrub. */
+    .bar.flowing :is(.step, .state-btn, .sep.st, .tl-btn) { display: none !important; }
   `;
 
   const ICONS = {
@@ -1362,7 +1365,7 @@
     if (q.has('flow') && hasFlows()) {
       const i = flowList().findIndex((f) => slug(f.name) === q.get('flow'));
       if (i >= 0) flowIdx = i;
-      setFlow(true);
+      setFlow(true, i < 0);
     }
   }
 
@@ -1619,10 +1622,50 @@
     return null;
   }
 
-  function setFlow(v) {
+  // With several flows (one per device, say), show the one for the state you're in: the flow that
+  // has the current preset, or else the one whose screens are mostly on the current device.
+  function flowNames(f) {
+    const n = f.steps.flatMap((st) => [st.from, st.to, ...Object.values(branchesOf(st))]);
+    Object.entries(f.alternates || {}).forEach(([k, list]) => n.push(k, ...list));
+    return new Set(n.filter((x) => typeof x === 'string'));
+  }
+  function pickFlow() {
+    const flows = flowList();
+    if (flows.length < 2) return false;
+    const p = currentPreset();
+    let best = -1;
+    if (p) {
+      if (flows[flowIdx] && flowNames(flows[flowIdx]).has(p.name)) return false;
+      best = flows.findIndex((f) => flowNames(f).has(p.name));
+    }
+    if (best < 0 && cfg.device) {
+      const dv = state()[cfg.device];
+      const score = (f) => [...flowNames(f)].filter((n) => same(presets.find((x) => x.name === n)?.values?.[cfg.device], dv)).length;
+      const scores = flows.map(score), top = Math.max(...scores);
+      if (top > 0 && scores[flowIdx] < top) best = scores.indexOf(top);
+    }
+    if (best < 0 || best === flowIdx) return false;
+    flowIdx = best;
+    pref.set('flowIdx', flowIdx);
+    flowCam = null;
+    return true;
+  }
+
+  function showFlow(i) {
+    flowIdx = i;
+    pref.set('flowIdx', flowIdx);
+    flowCam = null;
+    renderFlow();
+    refresh();
+  }
+
+  function setFlow(v, pick = true) {
     flowOpen = v && hasFlows();
+    if (flowOpen && pick) pickFlow();
     flowView.classList.toggle('on', flowOpen);
     bar.querySelector('.flow-btn')?.classList.toggle('on', flowOpen);
+    // The flow is drawn from screenshots, so the size switcher wouldn't change it.
+    bar.classList.toggle('flowing', flowOpen);
     hidePeek();
     if (!flowOpen) return;
     if (tlOpen) setTimeline(false);
@@ -1710,9 +1753,7 @@
     const loose = presets.filter((p) => !used.has(p));
     const head = h('div', { class: 'flow-head' },
       h('div', { class: 'flow-row' },
-        h('span', { class: 't' }, flows.length > 1 ? 'Flow' : flow.name),
-        flows.length > 1 ? h('select', { 'aria-label': 'Flow', onchange: (e) => { flowIdx = +e.target.value; pref.set('flowIdx', flowIdx); flowCam = null; renderFlow(); } },
-          flows.map((f, i) => h('option', { value: i, selected: i === flowIdx }, f.name))) : null,
+        h('span', { class: 't' }, flow.name),
         h('div', { class: 'sep' }),
         h('button', { title: 'Close (F)', 'aria-label': 'Close flow', onclick: () => setFlow(false) }, '✕')),
       loose.length || g.warnings.length || broken.length ? h('div', { class: 'flow-loose' },
@@ -1957,18 +1998,25 @@
       );
     }
     // Size controls: the switcher when there's a choice, rotate whenever a device size is possible.
+    // In the flow view, the flows replace the sizes: the flow is drawn from screenshots, so sizes
+    // wouldn't change it. One button per flow, e.g. On a computer / On a phone.
+    const flowTabs = hasFlows() ? flowList() : [];
     const sizeControls = [
-      sizes.length < 2 ? null : h('div', { class: 'seg icons', role: 'group', 'aria-label': 'Viewport' },
+      flowTabs.length > 1 ? h('div', { class: 'seg flows dv', role: 'group', 'aria-label': 'Flow' },
+        flowTabs.map((f, i) => h('button', { 'data-flow': String(i), 'data-tip': 'Flow', 'data-key': 'V', onclick: () => showFlow(i) }, f.name))) : null,
+      sizes.length < 2 ? null : h('div', { class: 'seg icons sz', role: 'group', 'aria-label': 'Viewport' },
         sizes.map((k) => [k, VIEWPORTS[k]]).map(([k, vp]) => h('button', {
           'data-viewport': k, 'data-tip': `${vp.label}${vp.w ? ` \u00b7 ${vp.w} \u00d7 ${vp.h}` : ''}`, 'data-key': 'V', 'aria-label': vp.label,
           html: ICONS[k], onclick: () => setViewport(k),
         }))),
       sizes.some((k) => k !== 'desktop')
-        ? h('button', { class: 'ghost icon rotate', 'data-tip': 'Rotate', 'data-key': 'R', 'aria-label': 'Rotate device', html: ICONS.rotate, onclick: () => setViewport(viewport, !rotated) })
+        ? h('button', { class: 'ghost icon rotate sz', 'data-tip': 'Rotate', 'data-key': 'R', 'aria-label': 'Rotate device', html: ICONS.rotate, onclick: () => setViewport(viewport, !rotated) })
         : null,
     ].filter(Boolean);
-    if (kids.length > 1) kids.push(h('div', { class: 'sep' }));
-    if (sizeControls.length) kids.push(...sizeControls, h('div', { class: 'sep' }));
+    if (kids.length > 1) kids.push(h('div', { class: presets.length || controls.length ? 'sep st' : 'sep' }));
+    // The divider after them hides when everything before it does.
+    const hasDevs = flowTabs.length > 1, hasSizes = sizeControls.length > (hasDevs ? 1 : 0);
+    if (sizeControls.length) kids.push(...sizeControls, h('div', { class: hasDevs && hasSizes ? 'sep' : hasDevs ? 'sep dv' : 'sep sz' }));
     if (HIST) {
       kids.push(h('a', { class: 'ghost hist', href: latestUrl(), 'data-tip': 'A past version from the timeline',
         onclick: (e) => { e.currentTarget.href = latestUrl(); } },
@@ -2075,6 +2123,7 @@
     const v = variant();
     bar.querySelectorAll('[data-variant]').forEach((b) => b.classList.toggle('on', b.dataset.variant === v));
     bar.querySelectorAll('[data-viewport]').forEach((b) => b.classList.toggle('on', b.dataset.viewport === viewport));
+    bar.querySelectorAll('[data-flow]').forEach((b) => b.classList.toggle('on', +b.dataset.flow === flowIdx));
     const rot = bar.querySelector('.rotate');
     if (rot) { rot.style.display = viewport === 'desktop' ? 'none' : ''; rot.classList.toggle('on', rotated); }
     const p = currentPreset();
@@ -2153,6 +2202,7 @@
     else if (key === '[') stepPreset(-1);
     else if (key === ']') stepPreset(1);
     else if (key === 's' || key === 'S') { if (!hasStates()) return false; setOpen(!open); }
+    else if ((key === 'v' || key === 'V') && flowOpen && flowList().length > 1) showFlow((flowIdx + 1) % flowList().length);
     else if ((key === 'v' || key === 'V') && order.length > 1) setViewport(order[(order.indexOf(viewport) + 1) % order.length]);
     else if ((key === 't' || key === 'T') && !HIST) setTimeline(!tlOpen);
     else if ((key === 'f' || key === 'F') && hasFlows() && !HIST) setFlow(!flowOpen);

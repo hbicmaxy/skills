@@ -43,7 +43,7 @@ Once a prototype describes itself, the toolbar gives you:
 - **Links to any state**: the address bar always describes what you're looking at (`?variant=prototype&state=past-due&viewport=mobile`, or `&custom=…` for hand-tuned states). **Copy link to this state** puts it on your clipboard for a PR, Slack or a handover note.
 - **Timeline**: the prototype's history, Procreate-timelapse style. A scrubber has a dot for each saved version: a large blue dot where the state you're on changed, a small grey ring where it looked the same. The drawer says how many versions changed it (e.g. *Stash changed in 2 of 4 versions*), and so does each state in its dropdown. Press play to watch it evolve, or drag back to any moment. With **Skip unchanged** switched on (the default), play skips versions where the state looked the same. The page shows that moment's screenshot of the state you're on, and switching presets while scrubbing shows that state's history instead. If you've clicked into a state that isn't a preset, it follows the closest preset on the same screen. A dropdown in the timeline lists every captured state, so you can jump to any of them. It opens on the latest version; close it (`T`) to get back to the working prototype. Each version is captioned with a one-line summary of what changed, never the prompt behind it. **Open this version** opens that moment as a working prototype, in the same state.
 - **Timelapse states**: if [Timelapse](#timelapse) is on, every preset gets screenshotted after each Claude turn, with no extra setup. That's where the timeline's history comes from.
-- **Flow**: a flowchart of how the screens connect (`F`), drawn from the prototype's `flows`. Each screen is its latest screenshot. Hover for a bigger view, click to open that state. Arrows start from the button that triggers them, decisions are diamonds, and loops run underneath. Pinch or `⌘`-scroll to zoom, scroll or drag to pan, `0` to fit. The minimap in the lower left shows where you are. On every version, Timelapse clicks through each step to check it still lands where the flow says; broken steps show red, with where they went instead. See [Flows](#flows) below.
+- **Flow**: a flowchart of how the screens connect (`F`), drawn from the prototype's `flows`. Each screen is its latest screenshot. Hover for a bigger view, click to open that state. Arrows start from the button that triggers them, decisions are diamonds, and loops run underneath. Pinch or `⌘`-scroll to zoom, scroll or drag to pan, `0` to fit. The minimap in the lower left shows where you are. While the flow is open, the bar drops the state stepper and the timeline button, since the flow covers every state and has no history to scrub. On every version, Timelapse clicks through each step to check it still lands where the flow says; broken steps show red, with where they went instead. See [Flows](#flows) below.
 - **Comments**: Figma-style pins for design notes and handover. See [Comments](#comments) below.
 
 The toolbar's styles are sealed off from the prototype, so neither affects the other's look.
@@ -56,7 +56,7 @@ Hover over any toolbar button to see its name and shortcut.
 |---|---|
 | `S` | Open or close the states panel |
 | `[` / `]` | Previous / next preset |
-| `V` | Cycle desktop → tablet → mobile |
+| `V` | Cycle desktop → tablet → mobile, or the flows while the flow is open |
 | `R` | Rotate the tablet or phone |
 | `T` | Open or close the timeline |
 | `F` | Open or close the flow |
@@ -75,13 +75,13 @@ Hover over any toolbar button to see its name and shortcut.
 Claude does this for you (see the `prototype` skill). Loading the script on its own gives you the toolbar with the viewport switcher, timeline and comments:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.1.0/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.2.0/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 For variants, presets and controls, describe the prototype once its state exists, before the page finishes loading. [toolbar/example.html](toolbar/example.html) is a small working example in plain HTML.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.1.0/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.2.0/plugins/protokit/toolbar/protokit.js"></script>
 <script>
   Protokit.init({
     title: 'Project list',
@@ -148,7 +148,7 @@ flows: [{
 - `{ external: '…' }` is somewhere outside the prototype, like a system dialog.
 - `alternates` are presets showing the same place with different data. They're listed on that screen's node.
 
-The aim is one flow, with decisions for the branches. Use separate flows only when the platform or device changes the journey (desktop vs mobile, iOS vs Android); the flow view then has a switcher. `?flow` opens the flow view from a link, and `?flow=<name>` picks a flow.
+The aim is one flow, with decisions for the branches. Use separate flows only when the platform or device changes the journey (desktop vs mobile, iOS vs Android); the flow view's bar then has a button for each flow, in place of the size switcher (which wouldn't change the flow). It opens on the flow with the state you're on, or, for a prototype that draws its own devices and names the state key that picks one as `device`, the flow whose screens are mostly on that device. If iOS and Android only differ by a step or two, that's one mobile flow with a decision, not two flows. `?flow` opens the flow view from a link, and `?flow=<name>` picks a flow.
 
 Every preset should appear in a flow, as a step or an alternate. The flow view lists any that don't, along with steps that name a preset that doesn't exist.
 

@@ -31,7 +31,7 @@ Prefer one folder per prototype. A prototype can be a single HTML file or HTML p
 Add this line before the prototype's own scripts:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.1.0/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.2.0/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 Keep the version pinned. To move a prototype to a newer release, change the tag (`protokit--vX.Y.Z`).
@@ -48,6 +48,7 @@ Call `Protokit.init({...})` once the prototype's state exists and before the pag
 - **`derived`**: read-only values worth checking (e.g. which layout the logic picked).
 - **`variants`**: only when there is an existing page to compare against. Label them `{ current: 'Current page', prototype: 'Prototype' }`, and set `capture: { variants: ['prototype'] }` so Timelapse records the new design only. With no existing page, leave `variants` out and no switch appears.
 - **`screen`**: for an app with several screens, the state key that says which screen is showing (e.g. `'screen'`). Give every screen at least one preset, so its history is captured. The timeline uses `screen` to follow the right one when the user has clicked into a state that isn't a preset.
+- **`device`**: when the prototype draws its own devices (an iPhone, an Android phone, a desktop window) from a state key, name that key, e.g. `device: 'device'`, so the flow view opens on the right flow for the state you're on. If the prototype draws its own phone frame, hide it when the page is inside Protokit's device frame (the URL has `pk-frame`), so the mobile size and rotate don't show a phone inside a phone.
 - **`viewports`**: the sizes to offer, from `desktop`, `tablet` and `mobile`. Leave it out for a responsive web page. For a mobile app, use `['mobile', 'tablet']`. It then opens on a phone and is recorded at phone size, and on a real phone it shows full screen without the toolbar (`?toolbar` brings it back, `?bare` hides it anywhere). Don't add your own bare mode. Make the page work at the phone's own width, with `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">` and safe-area padding. Ask the user if it's unclear.
 
 Don't build your own state-switching panel or layout controls into the page. The toolbar provides them.
@@ -76,7 +77,7 @@ flows: [{
 Rules:
 
 1. **Every preset is reachable.** Each one is either a `from`/`to` in a flow or an alternate. When you add a preset, add the step that leads to it in the same edit. If you can't say how a user would get there, that's a design gap: ask the user rather than leaving it off.
-2. **As few flows as possible.** Use one flow and decision points by default. Split into separate flows only when the platform or device changes the journey (desktop vs mobile, iOS vs Android).
+2. **As few flows as possible.** Use one flow and decision points by default. Split into separate flows only when the device changes the journey, usually desktop vs mobile. iOS and Android are one mobile flow unless their screens really differ; where they only differ by a step (e.g. which store), use a decision such as *Which phone?*.
 3. **Ask, don't guess,** where the journey starts and any logic the prototype only fakes (e.g. *is the user signed in?*). Read the rest from the prototype's code.
 4. **Say what changed.** When you change the flow, add one line to your reply, e.g. *Flow: added Stash → Export, new decision "Has items?"*.
 5. **Fix red steps.** A step the last capture found broken shows red in the flow, with where it went instead. Fix the prototype or the step in the next turn, or ask the user if it's unclear which is right. Steps that start from something Protokit can't click (no matching button) aren't checked, and that's fine.
