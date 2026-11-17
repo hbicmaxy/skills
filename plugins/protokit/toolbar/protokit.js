@@ -46,6 +46,8 @@
   // read-only and the history ships beside it instead of in .timelapse/.
   const meta = (name) => document.querySelector(`meta[name="${name}"]`)?.content;
   const EXPORT = !!meta('protokit-export');
+  // ?flow=<name>&flowshot draws just that flow, at full size, for a picture of it (see handover.mjs).
+  const FLOWSHOT = new URLSearchParams(location.search).has('flowshot');
   const VIEWPORTS = {
     desktop: { label: 'Desktop' },
     tablet: { label: 'Tablet', w: 768, h: 1024, radius: 18 },
@@ -401,6 +403,7 @@
       .state-btn .k, .seg.variants, .bar .sep.v { display: none; }
     }
     .bar.flowing .sz, .bar:not(.flowing) .dv { display: none !important; }
+    .flowshot :is(.bar, .flow-head, .flow-nav, .flow-peek) { display: none !important; }
     /* The flow is a map of the states, not one of them, and it has no history to scrub. */
     .bar.flowing :is(.step, .state-btn, .sep.st, .tl-btn) { display: none !important; }
   `;
@@ -1709,7 +1712,7 @@
       g.edges.filter((e) => e.inner).map((e) => `<path d="M${e.inner.x1},${e.inner.y1} L${e.inner.x2},${e.inner.y2}" stroke="${e.fail ? '#ff6b6b' : '#0d99ff'}" stroke-width="1.5" stroke-opacity=".85"/>
         <circle cx="${e.inner.x1}" cy="${e.inner.y1}" r="4" fill="${e.fail ? '#ff6b6b' : '#0d99ff'}" stroke="#fff" stroke-width="1.5"/>`).join('')}</svg>`;
 
-    const here = currentPreset();
+    const here = FLOWSHOT ? null : currentPreset();
     g.nodes.forEach((n) => {
       const pos = `left:${n.x}px;top:${n.y}px;width:${n.w}px;height:${n.h}px`;
       if (n.kind === 'decision') {
@@ -1768,6 +1771,16 @@
   // Fits the chart below the header and above the toolbar, never bigger than actual size.
   function placeCam() {
     if (!flowSize || !flowCanvas) return;
+    if (FLOWSHOT) {
+      // The whole chart at 100% from the top left, and its size once the thumbnails have loaded.
+      flowCam = { z: 1, x: 0, y: 0 };
+      // Thumbnails off screen would wait to load, so they're loaded now, with a time limit just in case.
+      const imgs = [...flowCanvas.querySelectorAll('img')];
+      imgs.forEach((i) => { i.loading = 'eager'; });
+      const loaded = Promise.all(imgs.map((i) => (i.complete ? 1 : new Promise((r) => { i.onload = i.onerror = r; }))));
+      window.__pkFlowShot = { w: flowSize.w, h: flowSize.h,
+        ready: Promise.race([loaded, new Promise((r) => setTimeout(r, 8000))]) };
+    }
     if (!flowCam) {
       const top = 84, bottom = 84, { w, h: ht } = flowSize;
       const z = Math.max(0.2, Math.min(1, (innerWidth - 48) / w, (innerHeight - top - bottom) / ht));
@@ -1946,7 +1959,7 @@
     const host = h('div', { id: 'protokit-root', 'data-protokit': '' });
     root = host.attachShadow({ mode: 'open' });
     root.append(h('style', {}, CSS));
-    const kit = h('div', { class: 'kit' });
+    const kit = h('div', { class: FLOWSHOT ? 'kit flowshot' : 'kit' });
     stage = h('div', { class: 'stage' });
     bar = h('div', { class: 'bar', role: 'toolbar', 'aria-label': 'Prototype toolbar' });
     panel = h('div', { class: 'panel', role: 'dialog', 'aria-label': 'States' });
@@ -2118,7 +2131,7 @@
     if (tlOpen) updateTimeline();
     if (flowOpen) {
       const cur = currentPreset()?.name;
-      flowView.querySelectorAll('[data-node]').forEach((n) => n.classList.toggle('here', n.dataset.node === cur));
+      flowView.querySelectorAll('[data-node]').forEach((n) => n.classList.toggle('here', !FLOWSHOT && n.dataset.node === cur));
     }
     const v = variant();
     bar.querySelectorAll('[data-variant]').forEach((b) => b.classList.toggle('on', b.dataset.variant === v));

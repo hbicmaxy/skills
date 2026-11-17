@@ -75,13 +75,13 @@ Hover over any toolbar button to see its name and shortcut.
 Claude does this for you (see the `prototype` skill). Loading the script on its own gives you the toolbar with the viewport switcher, timeline and comments:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.2.0/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.2.1/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 For variants, presets and controls, describe the prototype once its state exists, before the page finishes loading. [toolbar/example.html](toolbar/example.html) is a small working example in plain HTML.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.2.0/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.2.1/plugins/protokit/toolbar/protokit.js"></script>
 <script>
   Protokit.init({
     title: 'Project list',
@@ -213,7 +213,7 @@ In a browser Claude can control, `Protokit.comments()` returns the JSON for the 
 
 The **Handover** button (the arrow-out-of-a-tray icon) copies a request to paste to Claude. Claude then bundles the prototype into one private link for a PR:
 
-- **An overview page for reviewers.** It lists the flow step by step, marking any step that doesn't land where it says, with a link that opens the interactive flow. It shows every state's latest screenshot (each opens the prototype in that state) and the comments grouped by type, with Logic first. It also shows how the prototype got here: each version with a one-line summary of what changed (not the prompt behind it) and the states it changed.
+- **An overview page for reviewers.** It shows a picture of each flow (e.g. one for desktop, one for mobile) that opens the interactive flow when clicked, and notes any step that doesn't land where it says. It shows every state's latest screenshot (each opens the prototype in that state) and the comments grouped by type, with Logic first. It also shows how the prototype got here: each version with a one-line summary of what changed (not the prompt behind it) and the states it changed.
 - **A self-contained copy of the prototype**, toolbar included. Local CSS, scripts, images and fonts are built into the file. Comments are read-only, and the timeline plays from screenshots bundled alongside.
 - **The Timelapse history** with the canvas view.
 - **A suggested PR description** that links to it all.

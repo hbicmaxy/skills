@@ -7,7 +7,7 @@ description: Bundle a Protokit prototype into one private link for a PR (the flo
 
 The handover is one private link with:
 
-- the flow, step by step, with any step that doesn't land where it says marked (when the prototype has `flows`)
+- a picture of each flow, linking to the interactive flow (when the prototype has `flows`); the export draws them in the same headless browser as the capture, so run it outside the sandbox
 - an overview page of every state's latest screenshot
 - the comments, grouped Logic, Questions, Notes, References
 - "How it got here": one line per version

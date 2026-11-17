@@ -234,7 +234,8 @@ async function captureFrame(file, notes = []) {
 //     states: [{ name: 'Trial ended', params: 'state=trial-ended', apply() { ... } }, ...],
 //   }
 // Each state is applied in turn and screenshotted. Without it, the page is captured once as "Default".
-async function screenshots(url, framesDir, id) {
+// A headless browser with one page, driven over the DevTools protocol. close() always cleans up.
+async function openPage() {
   const bin = BROWSERS.find((b) => fs.existsSync(b));
   if (!bin) throw new Error('no Chromium-based browser found (set TIMELAPSE_BROWSER)');
   const profile = fs.mkdtempSync(path.join(STATE_DIR, 'profile-'));
@@ -245,6 +246,17 @@ async function screenshots(url, framesDir, id) {
   ], { stdio: ['ignore', 'ignore', 'pipe'] });
 
   const kill = setTimeout(() => proc.kill('SIGKILL'), 120000);
+  let ws = null;
+  const close = async () => {
+    clearTimeout(kill);
+    try { ws?.close(); } catch {}
+    if (proc.exitCode === null) {
+      const exited = new Promise((r) => proc.once('exit', r));
+      proc.kill();
+      await Promise.race([exited, new Promise((r) => setTimeout(r, 3000).unref())]);
+    }
+    try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 }); } catch {}
+  };
   try {
     const wsUrl = await new Promise((resolve, reject) => {
       let buf = '';
@@ -257,7 +269,7 @@ async function screenshots(url, framesDir, id) {
       setTimeout(() => reject(new Error('browser did not start')), 15000).unref();
     });
 
-    const ws = new WebSocket(wsUrl);
+    ws = new WebSocket(wsUrl);
     await new Promise((r, j) => { ws.onopen = r; ws.onerror = () => j(new Error('ws failed')); });
     let seq = 0;
     const pending = new Map(), waiters = [];
@@ -284,6 +296,16 @@ async function screenshots(url, framesDir, id) {
     const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
     const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
     await send('Page.enable', {}, sessionId);
+    return { send, waitFor, sessionId, close };
+  } catch (e) {
+    await close();
+    throw e;
+  }
+}
+
+async function screenshots(url, framesDir, id) {
+  const { send, waitFor, sessionId, close } = await openPage();
+  try {
     await send('Emulation.setDeviceMetricsOverride', {
       width: VIEWPORT.width, height: VIEWPORT.height, deviceScaleFactor: VIEWPORT.scale, mobile: false,
     }, sessionId);
@@ -376,17 +398,60 @@ async function screenshots(url, framesDir, id) {
       flows = await evaluate('window.timelapse.flows || null').catch(() => null);
     }
     await send('Browser.close').catch(() => {});
-    ws.close();
     return { shots, viewport: size, checks, flows };
   } finally {
-    clearTimeout(kill);
-    if (proc.exitCode === null) {
-      const exited = new Promise((r) => proc.once('exit', r));
-      proc.kill();
-      await Promise.race([exited, new Promise((r) => setTimeout(r, 3000).unref())]);
-    }
-    try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 }); } catch {}
+    await close();
   }
+}
+
+// Pictures of a Protokit prototype's flows, for the handover: each flow drawn at full size by the
+// toolbar's flowshot mode (?flow=<key>&flowshot), saved as <outDir>/flow-<key>.webp.
+async function flowShots(file, outDir, keys) {
+  const { send, waitFor, sessionId, close } = await openPage();
+  // Every step has a time limit, so one flow that won't draw can't hold up the rest.
+  const within = (p, ms) => Promise.race([p, new Promise((_, j) => setTimeout(() => j(new Error('timed out')), ms).unref())]);
+  const evaluate = async (expression) => (await within(send('Runtime.evaluate', {
+    expression, awaitPromise: true, returnByValue: true,
+  }, sessionId), 20000)).result?.value;
+  const metrics = (width, height, scale = VIEWPORT.scale) => send('Emulation.setDeviceMetricsOverride', {
+    width, height, deviceScaleFactor: scale, mobile: false,
+  }, sessionId);
+  const out = [];
+  try {
+    for (const key of keys) {
+      await metrics(VIEWPORT.width, VIEWPORT.height);
+      const url = new URL(pathToFileURL(file).href);
+      url.searchParams.set('flow', key);
+      url.searchParams.set('flowshot', '1');
+      const loaded = waitFor('Page.loadEventFired', 10000);
+      await send('Page.navigate', { url: url.href }, sessionId);
+      await loaded;
+      const size = await evaluate(`new Promise((resolve) => {
+        const t0 = Date.now();
+        (function wait() {
+          const s = window.__pkFlowShot;
+          if (s) return s.ready.then(() => resolve({ w: s.w, h: s.h }));
+          if (Date.now() - t0 > 10000) return resolve(null);
+          setTimeout(wait, 100);
+        })();
+      })`).catch(() => null);
+      if (!size) { log('flowshot: no flow drawn for', key); continue; }
+      const w = Math.ceil(size.w), h = Math.ceil(size.h);
+      // Sharp at 2x, unless the chart is so big that 1x is plenty.
+      await metrics(w, h, w * h > 6e6 ? 1 : VIEWPORT.scale);
+      await evaluate('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))');
+      const { data } = await within(send('Page.captureScreenshot', {
+        format: 'webp', quality: 90, clip: { x: 0, y: 0, width: w, height: h, scale: 1 },
+      }, sessionId), 20000);
+      const name = `flow-${key}.webp`;
+      fs.writeFileSync(path.join(outDir, name), Buffer.from(data, 'base64'));
+      out.push({ key, file: name, w, h });
+    }
+    await send('Browser.close').catch(() => {});
+  } finally {
+    await close();
+  }
+  return out;
 }
 
 // ---------- entry ----------
@@ -432,10 +497,14 @@ try {
     if (!fs.existsSync(file)) throw new Error(`no such file: ${file}`);
     const viewer = await captureFrame(file, args[1] ? [args[1]] : ['Manual capture']);
     console.log(viewer || 'Unchanged since last frame — nothing captured.');
+  } else if (mode === 'flowshots') {
+    const [file, outDir, ...keys] = args;
+    fs.mkdirSync(outDir, { recursive: true });
+    console.log(JSON.stringify(await flowShots(path.resolve(file), outDir, keys)));
   } else {
     console.log('usage: timelapse.mjs prompt|edit|stop  (hooks)  ·  timelapse.mjs capture <file.html> ["note"]');
   }
 } catch (e) {
   log('error', mode, e.stack);
-  if (mode === 'capture') { console.error(e.message); process.exitCode = 1; }
+  if (mode === 'capture' || mode === 'flowshots') { console.error(e.message); process.exitCode = 1; }
 }
