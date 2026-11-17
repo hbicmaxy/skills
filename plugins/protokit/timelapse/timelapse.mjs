@@ -198,8 +198,8 @@ async function captureFrame(file, notes = []) {
   const id = String(n).padStart(4, '0');
   fs.writeFileSync(path.join(framesDir, `${id}.html`), withBase(src));
 
-  let shots = [], viewport = null;
-  try { ({ shots, viewport } = await screenshots(pathToFileURL(file).href, framesDir, id)); }
+  let shots = [], viewport = null, checks = null, flows = null;
+  try { ({ shots, viewport, checks, flows } = await screenshots(pathToFileURL(file).href, framesDir, id)); }
   catch (e) { log('screenshot failed', file, e.message); }
 
   let stat = null;
@@ -214,6 +214,8 @@ async function captureFrame(file, notes = []) {
     notes: notes.map((p) => (p.length > 600 ? p.slice(0, 600) + '…' : p)),
     ...(summary ? { summary } : {}),
     shot: shots[0]?.file || null, shots, viewport, html: `frames/${id}.html`, stat,
+    ...(checks ? { checks } : {}),
+    ...(flows ? { flows } : {}),
   });
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   // file:// pages can't fetch JSON, so the viewer loads the same data as a script.
@@ -309,7 +311,7 @@ async function screenshots(url, framesDir, id) {
       const r = el.getBoundingClientRect();
       return r.height > 0 && r.bottom >= innerHeight - 2 && r.top > innerHeight / 2;
     })`);
-    const shoot = async (file) => {
+    const shoot = async (file, measure) => {
       const height = await evaluate(
         `Math.min(${MAX_HEIGHT}, Math.max(${size.height}, document.documentElement.scrollHeight, document.body?.scrollHeight || 0))`);
       // A full-page capture draws pinned elements where the screen ends, i.e. mid-page. Making the
@@ -319,6 +321,8 @@ async function screenshots(url, framesDir, id) {
         await metrics(height);
         await evaluate('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))');
       }
+      // Where the flow's steps start on this screen, measured as it's drawn in the screenshot.
+      const extra = measure ? await measure().catch(() => null) : null;
       const { data } = await send('Page.captureScreenshot', {
         format: 'webp', quality: 88, captureBeyondViewport: true,
         clip: { x: 0, y: 0, width: size.width, height, scale: 1 },
@@ -327,7 +331,7 @@ async function screenshots(url, framesDir, id) {
       const buf = Buffer.from(data, 'base64');
       fs.writeFileSync(path.join(framesDir, file), buf);
       // w/h: the screenshot's size on screen (it's taken at 2x), so viewers can lay it out uncropped.
-      return { file: `frames/${file}`, hash: sha1(buf), w: size.width, h: height };
+      return { file: `frames/${file}`, hash: sha1(buf), w: size.width, h: height, ...(extra?.length ? { anchors: extra } : {}) };
     };
 
     const names = await evaluate(`(async () => {
@@ -357,12 +361,23 @@ async function screenshots(url, framesDir, id) {
         })()`).catch((e) => log('state failed', state, e.message));
         await new Promise((r) => setTimeout(r, 250)); // let transitions finish
         // params: the prototype's link to this state (Protokit provides it), used by handovers.
-        shots.push({ state, params, ...(await shoot(`${id}-${String(i + 1).padStart(2, '0')}.webp`)) });
+        const measure = () => evaluate(`(window.timelapse.states[${i}].anchors && window.timelapse.states[${i}].anchors()) || null`);
+        shots.push({ state, params, ...(await shoot(`${id}-${String(i + 1).padStart(2, '0')}.webp`, measure)) });
       }
+    }
+    // Protokit flows: click the element each step starts from and check it lands where the flow
+    // says. Runs after the screenshots, so it can't affect them.
+    let checks = null, flows = null;
+    if (names) {
+      checks = await Promise.race([
+        evaluate('window.timelapse.checkSteps ? window.timelapse.checkSteps() : null'),
+        new Promise((r) => setTimeout(() => r(null), 30000).unref()),
+      ]).catch((e) => { log('flow check failed', e.message); return null; });
+      flows = await evaluate('window.timelapse.flows || null').catch(() => null);
     }
     await send('Browser.close').catch(() => {});
     ws.close();
-    return { shots, viewport: size };
+    return { shots, viewport: size, checks, flows };
   } finally {
     clearTimeout(kill);
     if (proc.exitCode === null) {

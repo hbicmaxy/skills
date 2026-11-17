@@ -237,6 +237,45 @@ const stateCards = states.map((s) => {
     </a></li>`;
 }).join('\n');
 
+// The flow(s), as saved by the latest capture, with each step's click-through check.
+const flowFrame = [...frames].reverse().find((f) => f.flows?.length);
+const flows = flowFrame?.flows || [];
+const checks = new Map((flowFrame?.checks || []).map((c) => [c.key, c]));
+const flowSteps = flows.flatMap((f) => f.steps);
+const flowFails = flowSteps.filter((st) => checks.get(st.key)?.ok === false);
+const flowChecked = flowSteps.filter((st) => checks.has(st.key)).length;
+const targetName = (t) => (t && typeof t === 'object' ? t.external : t);
+const branchList = (st) => Object.entries(st.branches || { Yes: st.yes, No: st.no }).filter(([, t]) => t);
+const shotOf = (n) => states.find((x) => x.state === n) || states.find((x) => x.state.endsWith(` · ${n}`));
+const flowStop = (n, ext) => {
+  if (ext) return `<span class="fstop ext">${esc(n)}</span>`;
+  const sh = shotOf(n);
+  return sh
+    ? `<a class="fstop" href="${esc(stateLink(sh))}"><img src="history/${esc(sh.file)}" alt="" loading="lazy" decoding="async">${esc(n)}</a>`
+    : `<span class="fstop">${esc(n)}</span>`;
+};
+const flowRow = (st) => {
+  const c = checks.get(st.key);
+  const status = !c ? '<span class="fcheck none" title="Not checked: it doesn’t start from a button Protokit can click">–</span>'
+    : c.ok ? '<span class="fcheck ok" title="Checked: clicking it lands here">✓</span>'
+    : `<span class="fcheck bad" title="Broken">!</span>`;
+  const to = st.decision
+    ? `<span class="fdec">${esc(st.decision)}</span><span class="fbranches">${branchList(st).map(([k, t]) => `<span class="fbranch"><b>${esc(k)}</b> ${flowStop(targetName(t), typeof t === 'object')}</span>`).join('')}</span>`
+    : flowStop(targetName(st.to), typeof st.to === 'object');
+  return `<li class="fstep${c && !c.ok ? ' broken' : ''}">${status}${flowStop(st.from)}<span class="farrow">${esc(st.label || '')}</span><span class="fto">${to}</span>${c && !c.ok ? `<span class="fproblem">${esc(st.label || 'This step')} ${esc(c.problem || 'doesn’t land where the flow says')}</span>` : ''}</li>`;
+};
+const flowBlocks = flows.map((f) => {
+  const alts = Object.entries(f.alternates || {}).flatMap(([main, list]) => list.map((a) => `${esc(a)} (same place as ${esc(main)})`));
+  return `<div class="flow">
+      ${flows.length > 1 ? `<h3>${esc(f.name)} <a class="flink" href="prototype.html?flow=${esc(f.key)}">Open this flow</a></h3>` : ''}
+      <ol class="fsteps">${f.steps.map(flowRow).join('')}</ol>
+      ${alts.length ? `<p class="falts">Also on this path: ${alts.join(', ')}</p>` : ''}
+    </div>`;
+}).join('\n');
+const flowNote = flowSteps.length
+  ? `${plural(flowSteps.length, 'step')}. ${flowChecked ? (flowFails.length ? `${flowFails.length} of the ${flowChecked} checked by clicking through ${flowFails.length === 1 ? 'doesn’t' : 'don’t'} land where the flow says.` : `All ${flowChecked} checked by clicking through land where the flow says.`) : 'None could be checked by clicking through.'}`
+  : '';
+
 const order = new Map(comments.map((c, i) => [c.id, i + 1]));
 const commentGroups = Object.entries(CATS).map(([cat, label]) => {
   const list = comments.filter((c) => (c.category || 'note') === cat);
@@ -277,7 +316,7 @@ const page = `<title>${esc(title)} handover</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-  /* Spec sheet for engineers: a short masthead with one way in, then states, comments, history. */
+  /* Spec sheet for engineers: a short masthead with one way in, then the flow, states, comments, history. */
   :root {
     --paper: #f5f6f8; --surface: #ffffff; --ink: #14171c; --muted: #5a6270; --line: #dce0e6;
     --accent: #0a66b8; --accent-ink: #ffffff; --hover: #eef3f9;
@@ -323,6 +362,9 @@ const page = `<title>${esc(title)} handover</title>
     font-weight: 500; background: var(--accent); color: var(--accent-ink);
   }
   .btn:hover { filter: brightness(1.08); }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+  .btn.ghost:hover { box-shadow: inset 0 0 0 1px var(--accent); filter: none; }
 
   .states { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--card-min)), 1fr)); gap: 24px 20px; }
   .state { display: grid; gap: 6px; text-decoration: none; color: var(--ink); }
@@ -364,6 +406,34 @@ const page = `<title>${esc(title)} handover</title>
   .thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
   .thumbs img { width: var(--thumb-w); max-width: 100%; aspect-ratio: var(--ar); object-fit: cover; object-position: top; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); }
   .vlink { font-size: 14px; justify-self: start; }
+  .fnote { margin: 0 0 16px; color: var(--muted); }
+  .flows { display: grid; gap: 28px; }
+  .flow h3 { margin-bottom: 12px; }
+  .flink { font: 400 14px var(--body); margin-left: auto; }
+  .fsteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .fstep { background: var(--surface); display: grid; grid-template-columns: 20px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr); align-items: center; gap: 8px 16px; padding: 10px 14px; }
+  .fto { display: grid; gap: 8px; justify-items: start; }
+  .fstep.broken { box-shadow: inset 3px 0 0 var(--rem); }
+  .fcheck { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--mono); }
+  .fcheck.ok { color: var(--add); border: 1.5px solid currentColor; }
+  .fcheck.bad { background: var(--rem); color: var(--surface); }
+  .fcheck.none { color: var(--muted); }
+  .fstop { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); text-decoration: none; font-weight: 600; }
+  .fstop img { width: calc(var(--thumb-w) * .5); aspect-ratio: var(--ar); object-fit: cover; object-position: top; border-radius: 3px; border: 1px solid var(--line); }
+  a.fstop:hover { color: var(--accent); }
+  .fstop.ext { font-weight: 500; font-style: italic; color: var(--muted); }
+  .farrow { color: var(--muted); font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+  .farrow::after { content: "\\2192"; }
+  .fdec { font: 500 13px var(--mono); padding: 3px 8px; border: 1px dashed var(--muted); border-radius: 4px; }
+  .fbranches { display: grid; gap: 6px; padding-left: 12px; border-left: 1px dashed var(--line); }
+  .fbranch { display: inline-flex; align-items: center; gap: 6px; }
+  .fbranch b { font: 600 12px var(--mono); color: var(--muted); }
+  .fproblem { grid-column: 2 / -1; color: var(--rem); font-size: 14px; }
+  @media (max-width: 720px) {
+    .fstep { grid-template-columns: 20px minmax(0, 1fr); }
+    .farrow, .fto, .fproblem { grid-column: 2; }
+  }
+  .falts { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
   footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
   @media (prefers-reduced-motion: reduce) { .shot img { transition: none; } }
 </style>
@@ -372,8 +442,17 @@ const page = `<title>${esc(title)} handover</title>
   <header class="masthead">
     <p class="eyebrow">${esc(day(new Date().toISOString()))}</p>
     <h1>${esc(title)}</h1>
-    <a class="btn" href="prototype.html">Open the prototype</a>
+    <div class="actions">
+      <a class="btn" href="prototype.html">Open the prototype</a>
+      ${flows.length ? `<a class="btn ghost" href="prototype.html?flow">Open the flow</a>` : ''}
+    </div>
   </header>
+
+  ${flows.length ? `<section id="flow" aria-labelledby="flow-h">
+    <div class="section-head"><h2 id="flow-h">${flows.length > 1 ? 'Flows' : 'Flow'} <span class="count">${plural(flowSteps.length, 'step')}</span></h2></div>
+    <p class="fnote">${esc(flowNote)}</p>
+    <div class="flows">${flowBlocks}</div>
+  </section>` : ''}
 
   ${states.length ? `<section id="states" aria-labelledby="states-h">
     <div class="section-head"><h2 id="states-h">States <span class="count">${states.length}</span></h2></div>
@@ -405,11 +484,13 @@ const logic = comments.filter((c) => c.category === 'logic');
 const md = [
   `## Prototype handover`,
   ``,
-  `**[Open the handover]({{HANDOVER_LINK}})**: every state of the prototype, the design comments, and how it got here.`,
+  `**[Open the handover]({{HANDOVER_LINK}})**: every state of the prototype${flows.length ? ', the flow' : ''}, the design comments, and how it got here.`,
   ``,
   `- **States:** ${states.length}${states.length ? ` (${states.slice(0, 6).map((s) => s.state).join(', ')}${states.length > 6 ? ', …' : ''})` : ''}`,
   `- **Comments:** ${comments.length}${counts.length ? ` (${counts.map(([k, n]) => `${n} ${k}`).join(', ')})` : ''}`,
   `- **Versions:** ${frames.length}${range ? `, ${range}` : ''}`,
+  ...(flowSteps.length ? [`- **Flow:** ${flowNote}`] : []),
+  ...(flowFails.length ? [``, `### Broken flow steps`, ...flowFails.map((st) => `- ${st.from}: ${st.label || 'step'} ${checks.get(st.key).problem || ''}`.trim())] : []),
   ...(logic.length ? [``, `### Logic notes`, ...logic.map((c, i) => `${i + 1}. ${c.text}${where(c) ? ` _(${where(c)})_` : ''}`)] : []),
   ``,
 ].join('\n');
@@ -426,6 +507,6 @@ console.log(JSON.stringify({
     .map((p) => [path.relative(out, p).split(path.sep).join('/'), p])),
   prDescription: path.join(out, 'pr-description.md'),
   sizeMB: +(bytes / 1048576).toFixed(1),
-  counts: { states: states.length, comments: comments.length, versions: frames.length, files: files.length },
+  counts: { states: states.length, comments: comments.length, versions: frames.length, files: files.length, flowSteps: flowSteps.length, brokenFlowSteps: flowFails.length },
   warnings,
 }, null, 2));

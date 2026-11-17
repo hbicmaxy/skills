@@ -1,12 +1,13 @@
 ---
 name: handover
-description: Bundle a Protokit prototype into one private link for a PR (every state's screenshot, the comments, a summary of each version, and a self-contained copy of the prototype), then draft the PR description. Use when the user asks to hand over a prototype, or pastes "Prepare a Protokit handover for …".
+description: Bundle a Protokit prototype into one private link for a PR (the flow, every state's screenshot, the comments, a summary of each version, and a self-contained copy of the prototype), then draft the PR description. Use when the user asks to hand over a prototype, or pastes "Prepare a Protokit handover for …".
 ---
 
 # Prototype handover
 
 The handover is one private link with:
 
+- the flow, step by step, with any step that doesn't land where it says marked (when the prototype has `flows`)
 - an overview page of every state's latest screenshot
 - the comments, grouped Logic, Questions, Notes, References
 - "How it got here": one line per version
@@ -37,7 +38,7 @@ The export script is `../../toolbar/handover.mjs` (relative to this skill). Belo
    - `prDescription`: the drafted PR description
    - `warnings`: e.g. local fonts or images it couldn't find
 
-   Mention any warnings that affect what reviewers see.
+   Mention any warnings that affect what reviewers see. If `counts.brokenFlowSteps` is above 0, tell the user which steps are broken (they're in `prDescription`) and offer to fix them before publishing.
 
 4. **Publish.** Use the Artifact tool with `file_path` = `page` and `files` = `files`. The link is private, and the user shares it from the page's Share menu. To update an earlier handover of the same prototype, publish to its existing URL. Only send files that changed.
 

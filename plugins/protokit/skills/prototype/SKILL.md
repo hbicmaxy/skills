@@ -1,6 +1,6 @@
 ---
 name: prototype
-description: Set up and maintain an HTML prototype with the Protokit toolbar (states, variants, device sizes, timeline, comments). Use whenever creating a new HTML prototype, editing one that loads protokit.js, adding states or presets to a prototype, or when the user pastes "Save my Protokit comments".
+description: Set up and maintain an HTML prototype with the Protokit toolbar (states, flows, variants, device sizes, timeline, comments). Use whenever creating a new HTML prototype, editing one that loads protokit.js, adding states, presets or flow steps to a prototype, or when the user pastes "Save my Protokit comments".
 ---
 
 # Prototypes with Protokit
@@ -31,7 +31,7 @@ Prefer one folder per prototype. A prototype can be a single HTML file or HTML p
 Add this line before the prototype's own scripts:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.0.9/plugins/protokit/toolbar/protokit.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/hbicmaxy/skills@protokit--v1.1.0/plugins/protokit/toolbar/protokit.js"></script>
 ```
 
 Keep the version pinned. To move a prototype to a newer release, change the tag (`protokit--vX.Y.Z`).
@@ -51,6 +51,35 @@ Call `Protokit.init({...})` once the prototype's state exists and before the pag
 - **`viewports`**: the sizes to offer, from `desktop`, `tablet` and `mobile`. Leave it out for a responsive web page. For a mobile app, use `['mobile', 'tablet']`. It then opens on a phone and is recorded at phone size, and on a real phone it shows full screen without the toolbar (`?toolbar` brings it back, `?bare` hides it anywhere). Don't add your own bare mode. Make the page work at the phone's own width, with `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">` and safe-area padding. Ask the user if it's unclear.
 
 Don't build your own state-switching panel or layout controls into the page. The toolbar provides them.
+
+## The flow
+
+For any prototype with more than one screen, keep a **`flows`** list in `Protokit.init`: how a user gets from one preset to the next. The toolbar draws it as a flowchart of screenshots (`F`), Timelapse clicks through every step on each version to check it still lands where it says, and the handover lists it. You write and maintain it; the user reviews it.
+
+```js
+flows: [{
+  name: 'Finding something to do',
+  steps: [
+    { from: 'First question', to: 'Halfway through', label: 'Answer', at: '[data-do="answer"]' },
+    { from: 'Halfway through', label: 'Answer the last one', decision: 'Anything fit?', branches: { Yes: 'Late on the sofa', No: 'Nothing fits' } },
+    { from: 'Editing a hobby', to: { external: 'Confirm remove (system dialog)' }, label: 'Remove' },
+  ],
+  alternates: { 'Late on the sofa': ['Free afternoon at the table'] },
+}],
+```
+
+- `from` and `to` are preset names. `label` is what the user does, using the button's own visible text where there is one, so the arrow starts from that button. Add `at: '<selector>'` when the text doesn't find it (an icon button, or text that appears more than once).
+- A **decision** is a choice the product makes, not the user: `decision: 'Question?'` with `branches` naming each outcome's preset.
+- `{ external: '…' }` is a destination outside the prototype (a system dialog, another product, an email).
+- `alternates` lists presets that show the same place with different data, so they sit with it instead of needing their own steps.
+
+Rules:
+
+1. **Every preset is reachable.** Each one is either a `from`/`to` in a flow or an alternate. When you add a preset, add the step that leads to it in the same edit. If you can't say how a user would get there, that's a design gap: ask the user rather than leaving it off.
+2. **As few flows as possible.** Use one flow and decision points by default. Split into separate flows only when the platform or device changes the journey (desktop vs mobile, iOS vs Android).
+3. **Ask, don't guess,** where the journey starts and any logic the prototype only fakes (e.g. *is the user signed in?*). Read the rest from the prototype's code.
+4. **Say what changed.** When you change the flow, add one line to your reply, e.g. *Flow: added Stash → Export, new decision "Has items?"*.
+5. **Fix red steps.** A step the last capture found broken shows red in the flow, with where it went instead. Fix the prototype or the step in the next turn, or ask the user if it's unclear which is right. Steps that start from something Protokit can't click (no matching button) aren't checked, and that's fine.
 
 ## Testing on the user's phone
 

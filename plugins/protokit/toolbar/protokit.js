@@ -313,6 +313,90 @@
       background: #7c3aed; color: #fff; font-size: 9px; font-weight: 700; line-height: 15px; text-align: center;
     }
     .hist b { color: var(--ink); }
+
+    /* ---------- flow ---------- */
+    .flow-view {
+      position: fixed; inset: 0; z-index: 2147483645; display: none; overflow: hidden; cursor: grab; touch-action: none;
+      background: #2b2b2b radial-gradient(#3a3a3a 1px, transparent 1px) 0 0 / 20px 20px;
+    }
+    .flow-view.dragging, .flow-view.dragging * { cursor: grabbing !important; }
+    .flow-head { cursor: default; }
+    .flow-view.on { display: block; }
+    .flow-head {
+      position: fixed; top: 12px; left: 12px; z-index: 3; display: flex; flex-direction: column; gap: 6px;
+      max-width: calc(100vw - 24px); padding: 6px; background: var(--bg); border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2), 0 10px 32px rgba(0,0,0,.28);
+    }
+    .flow-row { display: flex; align-items: center; gap: 4px; }
+    .flow-row .t { font-weight: 600; padding: 0 6px; white-space: nowrap; }
+    .flow-row .sep { margin: 0 4px; }
+    .flow-row select { height: 28px; max-width: 260px; padding: 0 6px; background: var(--bg2); border: 0; border-radius: 6px; }
+    .flow-row button { height: 28px; min-width: 28px; padding: 0 6px; color: var(--muted); }
+    .flow-row button:hover { background: var(--bg3); color: var(--ink); }
+    .flow-loose { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; max-width: 560px; padding: 2px 4px 2px 6px; color: var(--muted); }
+    .flow-loose button { height: 24px; padding: 0 8px; border-radius: 12px; background: var(--bg2); color: var(--ink); }
+    .flow-loose button:hover { background: var(--bg3); }
+    .flow-loose .warn { color: #f5a524; width: 100%; }
+    .flow-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+    .flow-canvas svg.edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+    .fnode { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .fnode.screen { cursor: pointer; }
+    .fthumb {
+      width: 100%; flex: none; border-radius: 10px; overflow: hidden; background: #fff;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 24px rgba(0,0,0,.4); transition: box-shadow .12s;
+    }
+    .fthumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+    .fnode.screen:hover .fthumb { box-shadow: 0 0 0 2px var(--ink), 0 10px 28px rgba(0,0,0,.5); }
+    .fnode.here .fthumb { box-shadow: 0 0 0 3px var(--accent), 0 10px 28px rgba(0,0,0,.5); }
+    .fnode.here .fname::before { content: "You\\2019re here \\00b7 "; color: var(--accent); }
+    .fname {
+      max-width: 100%; text-align: center; font-weight: 600; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .fnode.stack .fthumb { box-shadow: 5px -5px 0 -1px #4a4a4a, 0 0 0 1px rgba(255,255,255,.08), 0 8px 24px rgba(0,0,0,.4); overflow: hidden; }
+    .fnode.stack.here .fthumb { box-shadow: 5px -5px 0 -1px #4a4a4a, 0 0 0 3px var(--accent); }
+    .falts { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: -4px; max-width: 100%; }
+    .falts button { max-width: 100%; height: 18px; padding: 0 6px; border-radius: 9px; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .falts button:hover { background: var(--bg3); color: var(--ink); }
+    .fnone { display: grid; place-items: center; height: 100%; padding: 10px; background: #3a3a3a; color: var(--muted); text-align: center; font-size: 11px; }
+    .fnode.missing .fthumb { background: none; box-shadow: none; outline: 1.5px dashed #ff6b6b; outline-offset: -1px; }
+    .fnode.missing .fnone { background: none; color: #ff6b6b; }
+    .fnode.decision { justify-content: center; }
+    .fnode.decision svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .fnode.decision span { position: relative; max-width: 64%; text-align: center; font-weight: 600; font-size: 11.5px; line-height: 1.25; }
+    .fnode.external {
+      flex-direction: row; justify-content: center; gap: 6px; padding: 0 14px; border: 1.5px dashed #6a6a6a; border-radius: 26px;
+      color: var(--muted); text-align: center; line-height: 1.25;
+    }
+    .flabel {
+      position: absolute; transform: translate(-50%, -50%); padding: 2px 8px; border-radius: 10px; white-space: nowrap; pointer-events: none;
+      background: var(--bg); color: var(--ink); font-size: 11px; box-shadow: 0 0 0 1px var(--line);
+    }
+    .flabel.branch { background: #3d3220; color: #f5c46a; font-weight: 600; box-shadow: 0 0 0 1px #6b5424; }
+    .flow-peek {
+      position: fixed; z-index: 2147483647; display: none; flex-direction: column; gap: 8px; padding: 8px; pointer-events: none;
+      background: var(--bg); border-radius: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.25), 0 16px 48px rgba(0,0,0,.45);
+    }
+    .flow-peek.on { display: flex; }
+    .flow-nav {
+      position: fixed; left: 12px; bottom: 12px; z-index: 3; display: flex; flex-direction: column; gap: 4px; padding: 4px;
+      background: var(--bg); border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.2), 0 10px 32px rgba(0,0,0,.28); cursor: default;
+    }
+    .flow-nav .mm { display: none; border-radius: 8px; background: #252525; cursor: pointer; touch-action: none; }
+    .flow-nav.map .mm { display: block; }
+    .nav-row { display: flex; align-items: center; gap: 2px; }
+    .nav-btn { width: 32px; height: 32px; display: grid; place-items: center; color: var(--muted); }
+    .nav-btn:hover { background: var(--bg3); color: var(--ink); }
+    .nav-btn.on { color: var(--ink); background: var(--bg3); }
+    .nav-pct { height: 32px; min-width: 52px; padding: 0 6px; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .nav-pct:hover { background: var(--bg3); }
+    .flow-nav.map .nav-row { justify-content: space-between; }
+    .flabel.fail { background: #3a1f1f; color: #ff9b9b; box-shadow: 0 0 0 1px #7a2e2e; }
+    .flow-loose .fail { color: #ff8a8a; width: 100%; }
+    .flow-peek img { display: block; border-radius: 8px; background: #fff; object-fit: cover; object-position: top; }
+    .flow-peek div { display: flex; justify-content: space-between; gap: 12px; padding: 0 4px 2px; }
+    .flow-peek b { font-weight: 600; }
+    .flow-peek span { color: var(--muted); white-space: nowrap; }
     @media (max-width: 640px) {
       .state-btn .k, .seg.variants, .bar .sep.v { display: none; }
     }
@@ -328,6 +412,10 @@
     play: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2v9.6c0 .5.5.8.9.5l7.3-4.8a.6.6 0 0 0 0-1L5.9 2.7c-.4-.3-.9 0-.9.5z"/></svg>',
     pause: '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>',
     handover: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 10V2.5M5 5.2L8 2.3l3 2.9"/><path d="M3 8.5v4.2c0 .5.4.8.8.8h8.4c.4 0 .8-.3.8-.8V8.5"/></svg>',
+    flow: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2" width="5" height="4" rx="1"/><rect x="9.5" y="10" width="5" height="4" rx="1"/><path d="M4 6v4.5c0 .3.2.5.5.5h3.8"/><path d="M7.4 9.6L8.8 11l-1.4 1.4"/></svg>',
+    zoomIn: '<svg viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,218.34,179.6,168.28a88.21,88.21,0,1,0-11.32,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM144,120H120v24a8,8,0,0,1-16,0V120H80a8,8,0,0,1,0-16h24V80a8,8,0,0,1,16,0v24h24a8,8,0,0,1,0,16Z"/></svg>',
+    zoomOut: '<svg viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,218.34,179.6,168.28a88.21,88.21,0,1,0-11.32,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM144,120H80a8,8,0,0,1,0-16h64a8,8,0,0,1,0,16Z"/></svg>',
+    minimap: '<svg viewBox="0 0 256 256" fill="currentColor"><path d="M228.92,49.69a8,8,0,0,0-6.86-1.45L160.93,63.52,99.58,32.84a8,8,0,0,0-5.52-.6l-64,16A8,8,0,0,0,24,56V200a8,8,0,0,0,9.94,7.76l61.13-15.28,61.35,30.68A8.15,8.15,0,0,0,160,224a8,8,0,0,0,1.94-.24l64-16A8,8,0,0,0,232,200V56A8,8,0,0,0,228.92,49.69ZM96,176a8,8,0,0,0-1.94.24L40,189.75V62.25L95.07,48.48l.93.46Zm120,17.75-55.07,13.77-.93-.46V80a8,8,0,0,0,1.94-.23L216,66.25Z"/></svg>',
     comment: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2.2c3.3 0 5.8 2.2 5.8 5s-2.5 5-5.8 5c-.7 0-1.4-.1-2-.3L3 13.4l.8-2.6C2.8 9.9 2.2 8.7 2.2 7.2c0-2.8 2.5-5 5.8-5z"/></svg>',
   };
 
@@ -495,7 +583,7 @@
       }, 300);
     }
     document.addEventListener('keydown', (e) => {
-      if (!typing(e) && !(e.metaKey || e.ctrlKey || e.altKey) && ['\\', '[', ']', 's', 'S', 'v', 'V', 't', 'T', 'c', 'C', 'r', 'R', 'h', 'H', 'Escape'].includes(e.key)) {
+      if (!typing(e) && !(e.metaKey || e.ctrlKey || e.altKey) && ['\\', '[', ']', 's', 'S', 'v', 'V', 't', 'T', 'f', 'F', 'c', 'C', 'r', 'R', 'h', 'H', 'Escape'].includes(e.key)) {
         toParent({ type: 'key', key: e.key });
         e.preventDefault();
       }
@@ -651,6 +739,7 @@
     tlDrawer.classList.toggle('open', v);
     bar.querySelector('.tl-btn')?.classList.toggle('on', v);
     if (!v) { tlView.classList.remove('on'); return; }
+    if (flowOpen) setFlow(false);
     tlStruct = '';
     loadHistory(() => {
       pos = Math.max(0, (tl?.frames.length ?? 0) - 1); // the latest version
@@ -1262,13 +1351,525 @@
     catch { say('Copy failed'); }
   }
 
-  // Links from a handover page can open the timeline at a version, or open a comment.
+  // Links from a handover page can open the timeline at a version, a comment, or the flow.
   function openFromLink() {
     const q = new URLSearchParams(location.search);
     const frameN = +q.get('frame');
     if (q.get('timeline') || frameN) { pendingFrame = frameN || null; setTimeline(true); }
     const c = q.get('comment') && comments.find((m) => m.id === q.get('comment'));
     if (c) { setCommentMode(true); setTimeout(() => goToComment(c), 300); }
+    // ?flow opens the flow view; ?flow=<name> picks which flow.
+    if (q.has('flow') && hasFlows()) {
+      const i = flowList().findIndex((f) => slug(f.name) === q.get('flow'));
+      if (i >= 0) flowIdx = i;
+      setFlow(true);
+    }
+  }
+
+  // ---------- flow ----------
+  // A flowchart of how the states connect, declared by the prototype as `flows` (or one `flow`):
+  //   { from: 'Empty list', to: 'Add hobby', label: 'Tap +' }
+  //   { from: 'Add hobby', label: 'Save', decision: 'Name filled in?', branches: { Yes: 'List', No: 'Name missing' } }
+  //   { from: 'Detail', to: { external: 'Share sheet' }, label: 'Share' }
+  // Names are presets (shown with their latest Timelapse screenshot) or decisions.
+  let flowView, flowPeek, flowOpen = false, flowIdx = pref.get('flowIdx', 0), peekTimer = null;
+  // The camera: where the chart sits and how big. Null until the chart is first fitted to the window.
+  let flowCam = null, flowSize = null, flowCanvas = null, flowPct = null;
+  const flowList = () => {
+    const f = cfg?.flows || (cfg?.flow ? [cfg.flow] : []);
+    return f.map((x, i) => (Array.isArray(x) ? { name: f.length > 1 ? `Flow ${i + 1}` : 'Flow', steps: x } : x));
+  };
+  const hasFlows = () => flowList().length > 0;
+
+  function buildGraph(flow) {
+    const nodes = new Map(), edges = [], warnings = [];
+    const decisions = new Set(flow.steps.filter((s) => s.decision).map((s) => s.decision));
+    const node = (ref) => {
+      if (ref && typeof ref === 'object') {
+        const id = `x:${ref.external}`;
+        if (!nodes.has(id)) nodes.set(id, { id, kind: 'external', name: ref.external });
+        return nodes.get(id);
+      }
+      const id = decisions.has(ref) ? `d:${ref}` : `s:${ref}`;
+      if (!nodes.has(id)) {
+        const p = decisions.has(ref) ? null : presets.find((x) => x.name === ref);
+        if (!p && !decisions.has(ref)) warnings.push(`“${ref}” isn’t a preset`);
+        nodes.set(id, { id, kind: decisions.has(ref) ? 'decision' : p ? 'screen' : 'missing', name: ref, preset: p });
+      }
+      return nodes.get(id);
+    };
+    if (flow.start) node(flow.start);
+    flow.steps.forEach((s) => {
+      const from = node(s.from);
+      if (s.decision) {
+        const d = node(s.decision);
+        edges.push({ from, to: d, label: s.label, key: stepKey(s) });
+        const br = s.branches || { ...(s.yes != null ? { Yes: s.yes } : {}), ...(s.no != null ? { No: s.no } : {}) };
+        Object.entries(br).forEach(([label, to]) => edges.push({ from: d, to: node(to), label, branch: true }));
+      } else if (s.to != null) edges.push({ from, to: node(s.to), label: s.label, key: stepKey(s) });
+    });
+    // The same screen with different data (other answers, other content) sits behind its main state.
+    Object.entries(flow.alternates || {}).forEach(([main, alts]) => {
+      const n = nodes.get(`s:${main}`);
+      if (!n) return warnings.push(`alternates name \u201c${main}\u201d, which isn\u2019t a step in the flow`);
+      n.alts = [].concat(alts).map((a) => presets.find((x) => x.name === a) || (warnings.push(`\u201c${a}\u201d isn\u2019t a preset`), null)).filter(Boolean);
+    });
+    warnings.forEach((w) => console.warn(`[Protokit] Flow “${flow.name}”: ${w}`));
+    return { nodes: [...nodes.values()], edges, warnings };
+  }
+
+  // Left to right: each node sits one column after the furthest step that leads to it. Steps that
+  // loop back (start again, save and return) run underneath.
+  function layoutFlow(g, TW, TH) {
+    const { edges } = g;
+    const nodes = [...g.nodes];
+    const out = new Map(nodes.map((n) => [n, []]));
+    edges.forEach((e) => out.get(e.from).push(e));
+    const seen = new Map(), order = [];
+    const visit = (n) => {
+      seen.set(n, 1);
+      out.get(n).forEach((e) => { const s = seen.get(e.to); if (s === 1) e.back = true; else if (!s) visit(e.to); });
+      seen.set(n, 2);
+      order.push(n);
+    };
+    nodes.forEach((n) => { if (!seen.has(n)) visit(n); });
+    order.reverse();
+    nodes.forEach((n) => { n.rank = 0; });
+    order.forEach((n) => out.get(n).forEach((e) => { if (!e.back) e.to.rank = Math.max(e.to.rank, n.rank + 1); }));
+
+    nodes.forEach((n) => {
+      if (n.kind === 'screen' || n.kind === 'missing') { n.w = TW; n.h = TH + 44 + (n.alts?.length ? 20 * n.alts.length + 4 : 0); n.ay = TH / 2; }
+      else if (n.kind === 'decision') { n.w = 156; n.h = 108; n.ay = n.h / 2; }
+      else { n.w = 150; n.h = 52; n.ay = n.h / 2; }
+    });
+    // A step that skips columns gets invisible waypoints in each one, so it's routed around the
+    // screens in between instead of behind them.
+    edges.filter((e) => !e.back).forEach((e) => {
+      e.chain = [e.from];
+      for (let r = e.from.rank + 1; r < e.to.rank; r++) {
+        const d = { kind: 'dummy', rank: r, w: 0, h: 24, ay: 12 };
+        nodes.push(d);
+        e.chain.push(d);
+      }
+      e.chain.push(e.to);
+    });
+    const preds = new Map(nodes.map((n) => [n, []])), succs = new Map(nodes.map((n) => [n, []]));
+    edges.filter((e) => !e.back).forEach((e) => e.chain.slice(1).forEach((n, i) => { preds.get(n).push(e.chain[i]); succs.get(e.chain[i]).push(n); }));
+    const cols = [];
+    nodes.forEach((n) => (cols[n.rank] ||= []).push(n));
+    // Order each column by where its neighbours sit, sweeping both ways, to untangle crossings.
+    const idx = (n) => cols[n.rank].indexOf(n);
+    for (let k = 0; k < 6; k++) {
+      const down = k % 2 === 0;
+      (down ? cols.slice(1) : cols.slice(0, -1).reverse()).forEach((col) => {
+        const b = new Map(col.map((n, i) => {
+          const nb = (down ? preds : succs).get(n);
+          return [n, nb.length ? nb.reduce((a, m) => a + idx(m), 0) / nb.length : i];
+        }));
+        col.sort((a, c) => b.get(a) - b.get(c));
+      });
+    }
+    // Every gap between columns is wide enough for its widest label with clear arrow on both
+    // sides, so labels never touch the screens or diamonds they sit between.
+    const GY = 72, PAD = 48, AIR = 44, MIN_GAP = 140;
+    const gaps = cols.map(() => MIN_GAP);
+    edges.filter((e) => !e.back && e.from !== e.to && (e.label || e.fail)).forEach((e) => {
+      const seg = e.branch ? 0 : Math.floor((e.chain.length - 2) / 2);
+      const r = e.chain[seg].rank;
+      gaps[r] = Math.max(gaps[r], (e.branch ? 1.6 : 1) * labelWidth(flowLabelText(e)) + 2 * AIR);
+    });
+    let x = PAD;
+    cols.forEach((col, i) => {
+      const w = Math.max(...col.map((n) => n.w));
+      col.forEach((n) => { n.x = x + (w - n.w) / 2; });
+      x += w + gaps[i];
+    });
+    const GX = gaps.at(-1);
+    // Each node lines up with the steps leading to it, without overlapping its column.
+    cols.forEach((col) => {
+      const want = col.map((n) => {
+        const p = preds.get(n);
+        return p.length ? p.reduce((a, m) => a + m.y + m.ay, 0) / p.length - n.ay : null;
+      });
+      let y = -Infinity;
+      col.forEach((n, i) => { n.y = Math.max(y, want[i] ?? y); if (!isFinite(n.y)) n.y = 0; y = n.y + n.h + GY; });
+      const off = col.map((n, i) => (want[i] == null ? null : want[i] - n.y)).filter((v) => v != null);
+      const shift = off.length ? Math.min(0, off.reduce((a, v) => a + v, 0) / off.length) : 0;
+      col.forEach((n) => { n.y += shift; });
+    });
+    const minY = Math.min(...nodes.map((n) => n.y));
+    nodes.forEach((n) => { n.y += PAD - minY; });
+    const bottom = Math.max(...nodes.map((n) => n.y + n.h));
+
+    let lane = 0;
+    const bez = (t, a, b, c, d) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t * t * c + t ** 3 * d;
+    edges.forEach((e) => {
+      if (e.from === e.to) return;
+      if (e.back) {
+        const tx = e.to.x + e.to.w / 2 - 10, ty = e.to.y + e.to.h + 4;
+        const Y = bottom + 56 + lane++ * 40, r = 12;
+        if (e.anchor) {
+          // Out of the element to the right, down the gap beside the screen, then back along the bottom.
+          const ax = e.from.x + e.anchor.x, ay = e.from.y + e.anchor.y, rx = e.from.x + e.from.w + 4, gx = rx + 18, dir = tx < gx ? -1 : 1;
+          e.inner = { x1: ax, y1: ay, x2: rx, y2: ay };
+          e.d = `M${rx},${ay} L${gx - r},${ay} Q${gx},${ay} ${gx},${ay + r} L${gx},${Y - r} Q${gx},${Y} ${gx + dir * r},${Y} L${tx - dir * r},${Y} Q${tx},${Y} ${tx},${Y - r} L${tx},${ty}`;
+          e.lx = (gx + tx) / 2; e.ly = Y;
+          return;
+        }
+        const sx = e.from.x + e.from.w / 2 + 10, sy = e.from.y + e.from.h + 2, dir = tx < sx ? -1 : 1;
+        e.d = `M${sx},${sy} L${sx},${Y - r} Q${sx},${Y} ${sx + dir * r},${Y} L${tx - dir * r},${Y} Q${tx},${Y} ${tx},${Y - r} L${tx},${ty}`;
+        e.lx = (sx + tx) / 2; e.ly = Y;
+      } else {
+        const segs = e.chain.slice(1).map((b, i) => {
+          const a = e.chain[i];
+          const sx = a.x + a.w + (a.kind === 'screen' || a.kind === 'missing' ? 4 : 0), sy = a.y + (i === 0 && e.anchor ? e.anchor.y : a.ay);
+          const tx = b.x - (b.kind === 'dummy' ? 0 : 4), ty = b.y + b.ay, dx = Math.max(30, (tx - sx) / 2);
+          return { sx, sy, tx, ty, dx };
+        });
+        if (e.anchor) e.inner = { x1: e.from.x + e.anchor.x, y1: e.from.y + e.anchor.y, x2: segs[0].sx, y2: segs[0].sy };
+        e.d = segs.map((q, i) => `${i ? '' : `M${q.sx},${q.sy} `}C${q.sx + q.dx},${q.sy} ${q.tx - q.dx},${q.ty} ${q.tx},${q.ty}${i < segs.length - 1 ? ` L${segs[i + 1].sx},${segs[i + 1].sy}` : ''}`).join(' ');
+        const q = segs[e.branch ? 0 : Math.floor((segs.length - 1) / 2)], t = e.branch ? 0.3 : 0.5;
+        e.lx = bez(t, q.sx, q.sx + q.dx, q.tx - q.dx, q.tx); e.ly = bez(t, q.sy, q.sy, q.ty, q.ty);
+      }
+    });
+    return { w: x - GX + PAD, h: bottom + (lane ? 56 + lane * 40 : 0) + PAD };
+  }
+
+  // ---------- flow steps on elements ----------
+  // A step starts from an element: the one its `at` selector names, or else a button whose text is
+  // the step's label. Timelapse records where those are on each screenshot, and clicks them to
+  // check each step lands where the flow says.
+  const extName = (r) => (r && typeof r === 'object' ? r.external : r);
+  const stepKey = (s) => [extName(s.from), s.label || '', s.decision || extName(s.to) || ''].join('\u2192');
+  const branchesOf = (s) => s.branches || { ...(s.yes != null ? { Yes: s.yes } : {}), ...(s.no != null ? { No: s.no } : {}) };
+  const normText = (t) => String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  function findAnchor(s) {
+    if (s.at) { try { return [...document.querySelectorAll(s.at)].find(shown) || null; } catch { return null; } }
+    if (!s.label) return null;
+    const want = normText(s.label);
+    return [...document.querySelectorAll('button, a[href], [role="button"], [data-do], input[type="submit"], input[type="button"], summary')]
+      .find((el) => shown(el) && normText(el.innerText || el.value || el.getAttribute('aria-label')) === want) || null;
+  }
+  const allSteps = () => flowList().flatMap((f) => f.steps);
+  function flowAnchors(p) {
+    return allSteps().filter((s) => s.from === p.name).map((s) => {
+      const el = findAnchor(s);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { key: stepKey(s), x: Math.round(r.left + scrollX), y: Math.round(r.top + scrollY), w: Math.round(r.width), h: Math.round(r.height) };
+    }).filter(Boolean);
+  }
+  const screenLabel = (key, v) => {
+    const o = controls.find((c) => c.key === key)?.options;
+    return (o && !Array.isArray(o) && o[v]) || String(v);
+  };
+  async function checkSteps() {
+    const out = [], key = screenKey();
+    const settle = async () => { await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); await new Promise((r) => setTimeout(r, 120)); };
+    for (const s of allSteps()) {
+      const from = presets.find((p) => p.name === s.from);
+      if (!from) continue;
+      applyPreset(from);
+      await settle();
+      const el = findAnchor(s);
+      if (!el) {
+        if (s.at) out.push({ key: stepKey(s), ok: false, problem: `nothing on \u201c${s.from}\u201d matches ${s.at}` });
+        continue;
+      }
+      // Dialogs and links to other pages would stop the check, so they're caught and noted instead.
+      let dialog = null, nav = null;
+      const saved = { alert: window.alert, confirm: window.confirm, prompt: window.prompt };
+      window.alert = (m) => { dialog = String(m ?? ''); };
+      window.confirm = (m) => { dialog = String(m ?? ''); return false; };
+      window.prompt = (m) => { dialog = String(m ?? ''); return null; };
+      const stopNav = (e) => { const a = e.target.closest?.('a[href]'); if (a && !a.getAttribute('href').startsWith('#')) { e.preventDefault(); nav = a.href; } };
+      document.addEventListener('click', stopNav, true);
+      try { el.click(); await settle(); }
+      catch (e) { out.push({ key: stepKey(s), ok: false, problem: e.message }); continue; }
+      finally { Object.assign(window, saved); document.removeEventListener('click', stopNav, true); }
+      const landed = key ? plain(state())[key] : undefined;
+      const targets = s.decision ? Object.values(branchesOf(s)) : [s.to];
+      const verdicts = targets.map((t) => {
+        if (t && typeof t === 'object') return dialog != null || nav ? true : null;
+        const p = presets.find((x) => x.name === t);
+        return p?.values && key ? same({ ...defaults, ...p.values }[key], landed) : null;
+      });
+      if (verdicts.every((v) => v === null)) continue;
+      const ok = verdicts.includes(true);
+      out.push({ key: stepKey(s), ok, ...(ok ? {} : { problem: `goes to ${key ? screenLabel(key, landed) : 'somewhere else'}` }) });
+    }
+    return out;
+  }
+
+  const flowLabelText = (e) => (e.fail ? `\u26a0 ${e.label || 'Step'} \u00b7 ${e.fail}` : e.label || '');
+  // How wide a label will be on the chart (11px text plus its padding).
+  let measureCtx = null;
+  function labelWidth(text) {
+    measureCtx ||= document.createElement('canvas').getContext('2d');
+    measureCtx.font = '600 11px Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    return text ? measureCtx.measureText(text).width + 18 : 0;
+  }
+
+  // The latest screenshot Timelapse has of a preset, in the variant on screen.
+  function latestShot(p) {
+    const name = p && capturedName(p);
+    if (!name || !tl) return null;
+    for (let i = tl.frames.length - 1; i >= 0; i--) { const s = shotAt(i, name); if (s) return s; }
+    return null;
+  }
+
+  function setFlow(v) {
+    flowOpen = v && hasFlows();
+    flowView.classList.toggle('on', flowOpen);
+    bar.querySelector('.flow-btn')?.classList.toggle('on', flowOpen);
+    hidePeek();
+    if (!flowOpen) return;
+    if (tlOpen) setTimeline(false);
+    loadHistory(renderFlow);
+  }
+
+  function renderFlow() {
+    if (!flowOpen) return;
+    const flows = flowList();
+    flowIdx = Math.max(0, Math.min(flowIdx, flows.length - 1));
+    const flow = flows[flowIdx], g = buildGraph(flow);
+    // Thumbnails take the screenshots' shape: portrait for a phone, landscape for desktop.
+    const ref = tl?.frames.at(-1)?.viewport || (homeSize === 'desktop' ? { width: 1440, height: 900 } : { width: sizeOf(homeSize).w, height: sizeOf(homeSize).h });
+    const portrait = ref.height > ref.width;
+    const TW = portrait ? 116 : 208, TH = Math.round((TW * ref.height) / ref.width);
+    // Steps that start from an element begin at a dot on it; steps the last capture found broken are red.
+    const checks = new Map((tl?.frames.at(-1)?.checks || []).map((c) => [c.key, c]));
+    g.edges.forEach((e) => {
+      const c = e.key && checks.get(e.key);
+      if (c && !c.ok) e.fail = c.problem;
+      if (!e.key || e.from.kind !== 'screen') return;
+      const shot = latestShot(e.from.preset), a = shot?.anchors?.find((x) => x.key === e.key);
+      if (!a) return;
+      const k = TW / shot.w, y = (a.y + a.h / 2) * k;
+      e.box = a;
+      // The dot sits at the element's right end, so it doesn't cover the button's text.
+      if (y < TH - 3) e.anchor = { x: Math.min(TW - 5, (a.x + a.w) * k - 3), y };
+    });
+    const L = layoutFlow(g, TW, TH);
+    flowSize = L;
+    const canvas = flowCanvas = h('div', { class: 'flow-canvas', style: `width:${L.w}px;height:${L.h}px` });
+    canvas.append(h('div', { html: `<svg class="edges" width="${L.w}" height="${L.h}" style="width:${L.w}px;height:${L.h}px">
+      <defs><marker id="pk-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8f8f8f"/></marker></defs>
+      <marker id="pk-arrow-fail" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ff6b6b"/></marker>
+      ${g.edges.filter((e) => e.d).map((e) => `<path d="${e.d}" fill="none" stroke="${e.fail ? '#ff6b6b' : '#8f8f8f'}" stroke-width="1.5" ${e.back ? 'stroke-dasharray="5 4"' : ''} marker-end="url(#${e.fail ? 'pk-arrow-fail' : 'pk-arrow'})"/>`).join('')}
+    </svg>` }).firstChild);
+    // Drawn over the screens: the short run from each element to the screen's edge, and its dot.
+    const over = `<svg class="edges" width="${L.w}" height="${L.h}" style="width:${L.w}px;height:${L.h}px;z-index:1">${
+      g.edges.filter((e) => e.inner).map((e) => `<path d="M${e.inner.x1},${e.inner.y1} L${e.inner.x2},${e.inner.y2}" stroke="${e.fail ? '#ff6b6b' : '#0d99ff'}" stroke-width="1.5" stroke-opacity=".85"/>
+        <circle cx="${e.inner.x1}" cy="${e.inner.y1}" r="4" fill="${e.fail ? '#ff6b6b' : '#0d99ff'}" stroke="#fff" stroke-width="1.5"/>`).join('')}</svg>`;
+
+    const here = currentPreset();
+    g.nodes.forEach((n) => {
+      const pos = `left:${n.x}px;top:${n.y}px;width:${n.w}px;height:${n.h}px`;
+      if (n.kind === 'decision') {
+        canvas.append(h('div', { class: 'fnode decision', style: pos,
+          html: `<svg viewBox="0 0 ${n.w} ${n.h}" preserveAspectRatio="none"><polygon points="${n.w / 2},1.5 ${n.w - 1.5},${n.h / 2} ${n.w / 2},${n.h - 1.5} 1.5,${n.h / 2}" fill="#2c2c2c" stroke="#f5a524" stroke-width="1.5"/></svg>` },
+        h('span', {}, n.name)));
+      } else if (n.kind === 'external') {
+        canvas.append(h('div', { class: 'fnode external', style: pos, title: 'Outside the prototype' }, n.name, ' ↗'));
+      } else {
+        const shot = latestShot(n.preset);
+        const src = shot ? new URL(shot.file, historyBase).href : null;
+        const el = h('div', { class: `fnode ${n.kind}${n.preset && n.preset === here ? ' here' : ''}`, style: pos, 'data-node': n.name,
+          role: n.preset ? 'button' : null, tabindex: n.preset ? 0 : null, 'aria-label': n.preset ? `Open ${n.name}` : null },
+          h('div', { class: 'fthumb', style: `height:${TH}px` },
+            src ? h('img', { src, alt: '', loading: 'lazy' })
+              : h('div', { class: 'fnone' }, n.preset ? 'No screenshot yet' : 'Not a preset')),
+          h('div', { class: 'fname' }, n.name),
+          n.alts?.length ? h('div', { class: 'falts' }, n.alts.map((a) => h('button', {
+            title: `Same screen: ${a.name}`, onclick: (e) => { e.stopPropagation(); applyPreset(a); setFlow(false); say(a.name); } }, `+ ${a.name}`))) : null);
+        if (n.alts?.length) el.classList.add('stack');
+        if (n.preset) {
+          const go = () => { applyPreset(n.preset); setFlow(false); say(n.name); };
+          el.addEventListener('click', go);
+          el.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+          if (src) {
+            el.addEventListener('pointerenter', () => { clearTimeout(peekTimer); peekTimer = setTimeout(() => showPeek(el, n, src, shot, portrait), 140); });
+            el.addEventListener('pointerleave', hidePeek);
+          }
+        }
+        canvas.append(el);
+      }
+    });
+    canvas.append(h('div', { html: over }).firstChild);
+    g.edges.filter((e) => e.d && (e.label || e.fail)).forEach((e) =>
+      canvas.append(h('div', { class: `flabel${e.branch ? ' branch' : ''}${e.fail ? ' fail' : ''}`, style: `left:${e.lx}px;top:${e.ly}px` },
+        flowLabelText(e))));
+    const broken = g.edges.filter((e) => e.fail);
+
+    // States that aren't in any flow, so gaps are easy to spot (and still one click away).
+    const used = new Set(flows.flatMap((f) => buildGraph(f).nodes.flatMap((n) => [n.preset, ...(n.alts || [])]).filter(Boolean)));
+    const loose = presets.filter((p) => !used.has(p));
+    const head = h('div', { class: 'flow-head' },
+      h('div', { class: 'flow-row' },
+        h('span', { class: 't' }, flows.length > 1 ? 'Flow' : flow.name),
+        flows.length > 1 ? h('select', { 'aria-label': 'Flow', onchange: (e) => { flowIdx = +e.target.value; pref.set('flowIdx', flowIdx); flowCam = null; renderFlow(); } },
+          flows.map((f, i) => h('option', { value: i, selected: i === flowIdx }, f.name))) : null,
+        h('div', { class: 'sep' }),
+        h('button', { title: 'Close (F)', 'aria-label': 'Close flow', onclick: () => setFlow(false) }, '✕')),
+      loose.length || g.warnings.length || broken.length ? h('div', { class: 'flow-loose' },
+        g.warnings.length ? h('span', { class: 'warn' }, `${g.warnings.join(', ')}.`) : null,
+        broken.length ? h('span', { class: 'fail' }, `${broken.length === 1 ? '1 step doesn\u2019t' : `${broken.length} steps don\u2019t`} lead where the flow says, as of the last capture.`) : null,
+        loose.length ? h('span', {}, flows.length > 1 ? 'Not in any flow:' : 'Not in the flow:') : null,
+        loose.map((p) => h('button', { onclick: () => { applyPreset(p); setFlow(false); } }, p.name))) : null);
+    flowView.replaceChildren(canvas, head, buildNav(g, L));
+    placeCam();
+  }
+
+  // Fits the chart below the header and above the toolbar, never bigger than actual size.
+  function placeCam() {
+    if (!flowSize || !flowCanvas) return;
+    if (!flowCam) {
+      const top = 84, bottom = 84, { w, h: ht } = flowSize;
+      const z = Math.max(0.2, Math.min(1, (innerWidth - 48) / w, (innerHeight - top - bottom) / ht));
+      flowCam = { z, x: (innerWidth - w * z) / 2, y: top + Math.max(0, (innerHeight - top - bottom - ht * z) / 2) };
+    }
+    flowCanvas.style.transform = `translate(${flowCam.x}px, ${flowCam.y}px) scale(${flowCam.z})`;
+    if (flowPct) flowPct.textContent = `${Math.round(flowCam.z * 100)}%`;
+    drawMinimapView();
+  }
+
+  // ---------- navigation panel (as in Kopi and Kaya) ----------
+  // Bottom left: zoom out, zoom level (click to fit), zoom in, and the minimap toggle. The minimap
+  // shows the whole flow and the part you're looking at; click or drag it to move there.
+  let flowMap = pref.get('flowMinimap', true), mmSvg = null, mmView = null, mmSize = null;
+  function buildNav(g, L) {
+    const mid = () => [innerWidth / 2, innerHeight / 2];
+    mmSize = L;
+    const nodes = g.nodes.map((n) => n.kind === 'decision'
+      ? `<polygon points="${n.x + n.w / 2},${n.y} ${n.x + n.w},${n.y + n.h / 2} ${n.x + n.w / 2},${n.y + n.h} ${n.x},${n.y + n.h / 2}" fill="#f5a524" opacity=".8"/>`
+      : n.kind === 'external' ? `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="20" fill="none" stroke="#8f8f8f" stroke-width="4" stroke-dasharray="10 8"/>`
+      : `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.ay * 2}" rx="8" fill="${n.kind === 'missing' ? 'none' : '#e8e8e8'}" ${n.kind === 'missing' ? 'stroke="#ff6b6b" stroke-width="4"' : ''}/>`).join('');
+    const edges = g.edges.filter((e) => e.d).map((e) => `<path d="${e.d}" fill="none" stroke="${e.fail ? '#ff6b6b' : '#777'}" stroke-width="5"/>`).join('');
+    const holder = h('div', { html: `<svg class="mm" role="img" aria-label="Minimap">${edges}${nodes}
+      <rect class="mm-view" rx="6" fill="rgba(13,153,255,.12)" stroke="#0d99ff" vector-effect="non-scaling-stroke" stroke-width="1.5"/></svg>` });
+    mmSvg = holder.firstChild;
+    mmView = mmSvg.querySelector('.mm-view');
+    bindMinimap();
+    const toggle = h('button', { class: `nav-btn${flowMap ? ' on' : ''}`, title: flowMap ? 'Hide minimap' : 'Show minimap', 'aria-label': 'Minimap', 'aria-pressed': String(flowMap), html: ICONS.minimap,
+      onclick: () => { flowMap = !flowMap; pref.set('flowMinimap', flowMap); nav.classList.toggle('map', flowMap); toggle.classList.toggle('on', flowMap); toggle.title = flowMap ? 'Hide minimap' : 'Show minimap'; toggle.setAttribute('aria-pressed', String(flowMap)); drawMinimapView(); } });
+    const nav = h('div', { class: `flow-nav${flowMap ? ' map' : ''}` },
+      mmSvg,
+      h('div', { class: 'nav-row' },
+        h('button', { class: 'nav-btn', title: 'Zoom out (\u2212)', 'aria-label': 'Zoom out', html: ICONS.zoomOut, onclick: () => zoomAt(flowCam.z / 1.25, ...mid()) }),
+        flowPct = h('button', { class: 'nav-pct', title: 'Zoom to fit (0)', onclick: () => { flowCam = null; placeCam(); } }),
+        h('button', { class: 'nav-btn', title: 'Zoom in (+)', 'aria-label': 'Zoom in', html: ICONS.zoomIn, onclick: () => zoomAt(flowCam.z * 1.25, ...mid()) }),
+        toggle));
+    return nav;
+  }
+  // What's on screen, in the chart's own coordinates.
+  const viewRect = () => ({ x: -flowCam.x / flowCam.z, y: -flowCam.y / flowCam.z, w: innerWidth / flowCam.z, h: innerHeight / flowCam.z });
+  function drawMinimapView() {
+    if (!mmSvg || !flowCam || !flowMap) return;
+    const v = viewRect(), pad = 40;
+    // The map covers the whole flow, and grows to include the view when you've wandered off it.
+    const x0 = Math.min(0, v.x) - pad, y0 = Math.min(0, v.y) - pad;
+    const x1 = Math.max(mmSize.w, v.x + v.w) + pad, y1 = Math.max(mmSize.h, v.y + v.h) + pad;
+    const W = 208, H = Math.round(Math.max(64, Math.min(150, (W * (y1 - y0)) / (x1 - x0))));
+    mmSvg.setAttribute('viewBox', `${x0} ${y0} ${x1 - x0} ${y1 - y0}`);
+    mmSvg.style.width = `${W}px`; mmSvg.style.height = `${H}px`;
+    Object.entries({ x: v.x, y: v.y, width: v.w, height: v.h }).forEach(([k, val]) => mmView.setAttribute(k, val));
+  }
+  function bindMinimap() {
+    const toChart = (e) => {
+      const m = mmSvg.getScreenCTM();
+      if (!m) return null;
+      const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+      return { x: p.x, y: p.y };
+    };
+    let grab = null;
+    // Centres the view on a point of the chart, keeping where you grabbed the view rectangle.
+    const moveTo = (p) => {
+      const v = viewRect();
+      flowCam.x = -(p.x - grab.dx - v.w / 2) * flowCam.z;
+      flowCam.y = -(p.y - grab.dy - v.h / 2) * flowCam.z;
+      placeCam();
+    };
+    mmSvg.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || !flowCam) return;
+      e.stopPropagation();
+      const p = toChart(e), v = viewRect();
+      if (!p) return;
+      const inside = p.x >= v.x && p.x <= v.x + v.w && p.y >= v.y && p.y <= v.y + v.h;
+      grab = inside ? { dx: p.x - (v.x + v.w / 2), dy: p.y - (v.y + v.h / 2) } : { dx: 0, dy: 0 };
+      mmSvg.setPointerCapture(e.pointerId);
+      hidePeek();
+      moveTo(p);
+    });
+    mmSvg.addEventListener('pointermove', (e) => { if (grab) { const p = toChart(e); if (p) moveTo(p); } });
+    const end = () => { grab = null; };
+    mmSvg.addEventListener('pointerup', end);
+    mmSvg.addEventListener('pointercancel', end);
+  }
+  // Zooms keeping the point under (cx, cy) where it is, like a design tool.
+  function zoomAt(z, cx, cy) {
+    if (!flowCam) return;
+    z = Math.max(0.2, Math.min(3, z));
+    flowCam = { z, x: cx - ((cx - flowCam.x) * z) / flowCam.z, y: cy - ((cy - flowCam.y) * z) / flowCam.z };
+    placeCam();
+  }
+  function panBy(dx, dy) {
+    if (!flowCam) return;
+    flowCam.x += dx; flowCam.y += dy;
+    placeCam();
+  }
+  // Trackpad: pinch zooms, two fingers pan. Mouse: wheel pans, Cmd/Ctrl + wheel zooms. Drag the
+  // background to pan too.
+  function bindFlowCamera() {
+    flowView.addEventListener('wheel', (e) => {
+      if (e.target.closest?.('.flow-head, .flow-nav')) return;
+      e.preventDefault();
+      if (!flowCam) return;
+      hidePeek();
+      const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
+      if (e.ctrlKey || e.metaKey) zoomAt(flowCam.z * Math.exp(-e.deltaY * k * (e.ctrlKey && !e.metaKey ? 0.01 : 0.002)), e.clientX, e.clientY);
+      else panBy(-e.deltaX * k, -e.deltaY * k);
+    }, { passive: false });
+    // Safari reports trackpad pinches as gesture events.
+    let g0 = 1;
+    flowView.addEventListener('gesturestart', (e) => { e.preventDefault(); g0 = flowCam?.z ?? 1; });
+    flowView.addEventListener('gesturechange', (e) => { e.preventDefault(); zoomAt(g0 * e.scale, e.clientX, e.clientY); });
+    let drag = null;
+    flowView.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.target.closest?.('.fnode, .flow-head, .flow-nav')) return;
+      drag = { x: e.clientX, y: e.clientY, id: e.pointerId };
+      flowView.setPointerCapture(e.pointerId);
+      flowView.classList.add('dragging');
+      hidePeek();
+    });
+    flowView.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      panBy(e.clientX - drag.x, e.clientY - drag.y);
+      drag.x = e.clientX; drag.y = e.clientY;
+    });
+    const end = () => { drag = null; flowView.classList.remove('dragging'); };
+    flowView.addEventListener('pointerup', end);
+    flowView.addEventListener('pointercancel', end);
+  }
+
+  // Hovering a screen shows it big, beside the node.
+  function showPeek(el, n, src, shot, portrait) {
+    const W = portrait ? 300 : 560, H = Math.round((W * (shot.h || (portrait ? 844 : 900))) / (shot.w || (portrait ? 390 : 1440)));
+    const maxH = innerHeight - 40, imgH = Math.min(H, maxH - 40);
+    flowPeek.replaceChildren(h('img', { src, alt: '', style: `width:${W}px;height:${imgH}px` }),
+      h('div', {}, h('b', {}, n.name), h('span', {}, 'Click to open')));
+    flowPeek.classList.add('on');
+    const r = el.getBoundingClientRect(), pw = W + 16, ph = imgH + 46;
+    const left = r.right + 16 + pw < innerWidth ? r.right + 16 : Math.max(8, r.left - 16 - pw);
+    flowPeek.style.left = `${left}px`;
+    flowPeek.style.top = `${Math.max(12, Math.min(innerHeight - ph - 12, r.top + r.height / 2 - ph / 2))}px`;
+  }
+  function hidePeek() {
+    clearTimeout(peekTimer);
+    flowPeek?.classList.remove('on');
   }
 
   // ---------- tooltips ----------
@@ -1311,13 +1912,16 @@
     toast = h('div', { class: 'toast', role: 'status' });
     tlView = h('div', { class: 'tl-view' }, h('img', { alt: '' }));
     tlDrawer = h('div', { class: 'tl', role: 'region', 'aria-label': 'Timeline' });
+    flowView = h('div', { class: 'flow-view', role: 'region', 'aria-label': 'Flow' });
+    flowPeek = h('div', { class: 'flow-peek' });
+    bindFlowCamera();
     pinLayer = h('div', { class: 'pins' });
     hoverBox = h('div', { class: 'hover-box' });
     pop = h('div', { class: 'pop', role: 'dialog', 'aria-label': 'Comment' });
     cpanel = h('div', { class: 'panel', role: 'dialog', 'aria-label': 'Comments' });
     hoCard = h('div', { class: 'ho', role: 'dialog', 'aria-label': 'Handover' });
     tipEl = h('div', { class: 'tip', role: 'tooltip' });
-    kit.append(pinLayer, hoverBox, stage, tlView, bar, tlDrawer, hoCard, panel, cpanel, pop, toast, tipEl);
+    kit.append(pinLayer, hoverBox, stage, tlView, flowView, flowPeek, bar, tlDrawer, hoCard, panel, cpanel, pop, toast, tipEl);
     root.append(kit);
     document.body.append(host);
     if (pref.get('collapsed', false)) bar.classList.add('collapsed');
@@ -1370,6 +1974,7 @@
         onclick: (e) => { e.currentTarget.href = latestUrl(); } },
         h('b', {}, `Version #${+HIST[2]}`), h('span', {}, 'Back to latest \u2197')));
     } else {
+      if (hasFlows()) kids.push(h('button', { class: 'ghost icon flow-btn', 'data-tip': 'Flow', 'data-key': 'F', 'aria-label': 'Flow', html: ICONS.flow, onclick: () => setFlow(!flowOpen) }));
       kids.push(h('button', { class: 'ghost icon tl-btn', 'data-tip': 'Timeline', 'data-key': 'T', 'aria-label': 'Timeline', html: ICONS.history, onclick: () => setTimeline(!tlOpen) }));
     }
     const cm = h('button', { class: 'ghost icon cm-btn', 'data-tip': 'Comments', 'data-key': 'C', 'aria-label': 'Comments', html: ICONS.comment, onclick: () => setCommentMode(!cmMode) });
@@ -1463,6 +2068,10 @@
   function refresh() {
     if (!bar) return;
     if (tlOpen) updateTimeline();
+    if (flowOpen) {
+      const cur = currentPreset()?.name;
+      flowView.querySelectorAll('[data-node]').forEach((n) => n.classList.toggle('here', n.dataset.node === cur));
+    }
     const v = variant();
     bar.querySelectorAll('[data-variant]').forEach((b) => b.classList.toggle('on', b.dataset.variant === v));
     bar.querySelectorAll('[data-viewport]').forEach((b) => b.classList.toggle('on', b.dataset.viewport === viewport));
@@ -1546,6 +2155,10 @@
     else if (key === 's' || key === 'S') { if (!hasStates()) return false; setOpen(!open); }
     else if ((key === 'v' || key === 'V') && order.length > 1) setViewport(order[(order.indexOf(viewport) + 1) % order.length]);
     else if ((key === 't' || key === 'T') && !HIST) setTimeline(!tlOpen);
+    else if ((key === 'f' || key === 'F') && hasFlows() && !HIST) setFlow(!flowOpen);
+    else if (key === '0' && flowOpen) { flowCam = null; placeCam(); }
+    else if ((key === '=' || key === '+') && flowOpen) zoomAt(flowCam.z * 1.25, innerWidth / 2, innerHeight / 2);
+    else if (key === '-' && flowOpen) zoomAt(flowCam.z / 1.25, innerWidth / 2, innerHeight / 2);
     else if ((key === 'r' || key === 'R') && viewport !== 'desktop') setViewport(viewport, !rotated);
     else if ((key === 'h' || key === 'H') && !HIST && !EXPORT) toggleHandover();
     else if (key === 'ArrowLeft' && tlOpen) { stopPlay(); go(pos - 1); }
@@ -1555,6 +2168,7 @@
     else if (key === 'Escape' && pop?.classList.contains('open')) closePop();
     else if (key === 'Escape' && hoCard?.classList.contains('open')) toggleHandover(false);
     else if (key === 'Escape' && cmMode) setCommentMode(false);
+    else if (key === 'Escape' && flowOpen) setFlow(false);
     else if (key === 'Escape' && open) setOpen(false);
     else if (key === 'Escape' && tlOpen) setTimeline(false);
     else return false;
@@ -1579,7 +2193,7 @@
       const prefix = v && vs.length > 1 ? `${cfg.variants.options[v]} \u00b7 ` : '';
       const setV = () => { if (v) cfg.variants.set(v); };
       const params = (p) => new URLSearchParams([...(v ? [['variant', v]] : []), ...(p ? [['state', slug(p.name)]] : [])]).toString();
-      if (presets.length) presets.forEach((p) => list.push({ name: prefix + p.name, params: params(p), apply: () => { setV(); applyPreset(p); } }));
+      if (presets.length) presets.forEach((p) => list.push({ name: prefix + p.name, params: params(p), apply: () => { setV(); applyPreset(p); }, anchors: () => flowAnchors(p) }));
       else if (v) list.push({ name: cfg.variants.options[v], params: params(null), apply: () => { setV(); changed(); } });
     });
     // A prototype without desktop is captured at its own default size.
@@ -1587,6 +2201,9 @@
     if (!list.length && !size) return;
     window.timelapse = {
       prepare: () => { root.host.style.display = 'none'; },
+      checkSteps: hasFlows() ? checkSteps : undefined,
+      // The flows as plain data, saved with each version for the handover page.
+      flows: hasFlows() ? JSON.parse(JSON.stringify(flowList().map((f) => ({ ...f, key: slug(f.name), steps: f.steps.map((st) => ({ ...st, key: stepKey(st) })) })))) : undefined,
       states: list.length ? list : [{ name: 'Default', apply: () => {} }],
       viewport: size,
     };
